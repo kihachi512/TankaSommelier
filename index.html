@@ -18,14 +18,14 @@
 <div class="wrapper">
     <div class="container">
         <h1>🍵 短歌ソムリエ（β版）</h1>
-        <h3>管理人がこれまでに詠んだ短歌から<br>AIが今のあなたにおすすめの一首をセレクトします</h3>
+        <h3>作者・さいとうが日々詠み貯めた短歌の森から、<br>AIソムリエが今のあなたに寄り添う一首を案内します。</h3>
         <p>今のあなたの気分や情景を教えてください。</p>
         
         <textarea id="moodInput" placeholder="例：雨の音を聞きながら、少し感傷的な気分..."></textarea>
         <br>
-        <button onclick="getTanka()">選歌してもらう</button>
+        <button onclick="getTanka()">私の短歌から一首選んでもらう</button>
 
-        <div id="loading" class="loading">ソムリエがあなたのための1首を選んでいます...</div>
+        <div id="loading" class="loading">ソムリエがあなたのための一首を選んでいます...</div>
         <div id="result"></div>
     </div>
 
@@ -66,11 +66,18 @@
         const mood = document.getElementById('moodInput').value;
         const resultDiv = document.getElementById('result');
         const loadingDiv = document.getElementById('loading');
+        // 追加：ボタン要素を取得
+        const submitBtn = document.querySelector('button');
 
         if (!mood) {
             alert("気分を入力してくださいね。");
             return;
         }
+
+        // 追加：ボタンを無効化（グレーアウト）して連打を防止
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.5';
+        submitBtn.innerText = 'ソムリエが選考中...';
 
         resultDiv.style.display = 'none';
         loadingDiv.style.display = 'block';
@@ -93,6 +100,13 @@
             resultDiv.style.display = 'block';
         } finally {
             loadingDiv.style.display = 'none';
+            
+            // 追加：10秒（10000ミリ秒）後にボタンを復活させる
+            setTimeout(() => {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.innerText = '私の短歌から一首選んでもらう';
+            }, 10000);
         }
     }
 </script>
