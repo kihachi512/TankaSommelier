@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>短歌ソムリエ（β版）</title>
     
+    <meta name="description" content="青空文庫で公開されている名歌の中から、AIソムリエが今のあなたの気分に寄り添う短歌を一首選び、優しく解説するサービスです。">
+    
+    <meta property="og:title" content="短歌ソムリエ（β版）">
+    <meta property="og:description" content="今の気分を教えると、AIが青空文庫の名歌からあなたにぴったりな一首を処方します。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tankasommelier.momongacarnival.com">
+    <meta property="og:image" content="https://momongacarnival.com/assets/momonga-500x500.png">
+    <meta property="og:site_name" content="さすらいのモモンガカーニバル">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="短歌ソムリエ（β版）">
+    <meta name="twitter:description" content="今の気分を教えると、AIが青空文庫の名歌からあなたにぴったりな一首を処方します。">
+    <meta name="twitter:image" content="https://momongacarnival.com/assets/momonga-500x500.png">
+
     <link rel="icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
     <link rel="apple-touch-icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
     
@@ -15,15 +29,14 @@
     <link rel="stylesheet" href="style.css">
 
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1220415790257239" crossorigin="anonymous"></script>
-	<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-94FWLN36SL"></script>
-	<script>
-	  window.dataLayer = window.dataLayer || [];
-	  function gtag(){dataLayer.push(arguments);}
-	  gtag('js', new Date());
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-94FWLN36SL"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
 
-	  gtag('config', 'G-94FWLN36SL');
-	</script>
+      gtag('config', 'G-94FWLN36SL');
+    </script>
 </head>
 <body>
 
@@ -103,13 +116,7 @@
 
             const data = await response.json();
             
-            // ★変更：ハードコーディングを辞め、APIから作者名を受け取るように修正
-            // 作者名が存在する場合は、短歌の末尾に全角スペースを空けて配置する
-            let authorText = "";
-            if (data.author) {
-                authorText = "　" + data.author;
-            }
-            
+            // ★変更：不要になったauthor変数の処理を削除し、スッキリさせました
             resultDiv.innerText = data.reply;
             resultDiv.style.display = 'block';
         } catch (error) {
