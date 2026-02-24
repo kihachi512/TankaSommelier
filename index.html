@@ -101,7 +101,7 @@
                 authorText = "　" + data.author;
             }
             
-            resultDiv.innerText = data.reply + authorText;
+            resultDiv.innerText = data.reply;
             resultDiv.style.display = 'block';
         } catch (error) {
             resultDiv.innerText = "すみません、ソムリエが席を外しているようです。\n" + error.message;
