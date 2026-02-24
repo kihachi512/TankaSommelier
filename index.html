@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>短歌ソムリエ（β版）</title>
     
+    <link rel="icon" href="https://momongacarnival.com/assets/icon.png">
+    <link rel="apple-touch-icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
@@ -18,14 +21,14 @@
 <div class="wrapper">
     <div class="container">
         <h1>🍵 短歌ソムリエ（β版）</h1>
-        <h3>青空文庫で公開されている短歌から、<br>AIソムリエが今のあなたに寄り添う一首を案内します。<br>※β版では石川啄木『一握の砂』から選出しています。</h3>
+        <h3>青空文庫で公開されている名歌の中から、<br>AIソムリエが今のあなたに寄り添う一首を案内します。</h3>
         <p>今のあなたの気分や情景を教えてください。</p>
         
         <textarea id="moodInput" placeholder="例：雨の音を聞きながら、少し感傷的な気分..."></textarea>
         <br>
-        <button onclick="getTanka()">名歌の中から一首選んでもらう</button>
+        <button onclick="getTanka()">選歌してもらう</button>
 
-        <div id="loading" class="loading">ソムリエがあなたのための一首を選んでいます...</div>
+        <div id="loading" class="loading">ソムリエがあなたのための一首を選歌しています...</div>
         <div id="result"></div>
     </div>
 
@@ -75,7 +78,7 @@
 
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.5';
-        submitBtn.innerText = 'ソムリエが選考中...';
+        submitBtn.innerText = 'ソムリエが選歌中...';
 
         resultDiv.style.display = 'none';
         loadingDiv.style.display = 'block';
@@ -91,8 +94,14 @@
 
             const data = await response.json();
             
-            // 結果テキストの末尾に、作者と出典を自動で追記して表示
-            resultDiv.innerText = data.reply + "\n\nーー 石川啄木（青空文庫より）";
+            // ★変更：ハードコーディングを辞め、APIから作者名を受け取るように修正
+            // 作者名が存在する場合は、短歌の末尾に全角スペースを空けて配置する
+            let authorText = "";
+            if (data.author) {
+                authorText = "　" + data.author;
+            }
+            
+            resultDiv.innerText = data.reply + authorText;
             resultDiv.style.display = 'block';
         } catch (error) {
             resultDiv.innerText = "すみません、ソムリエが席を外しているようです。\n" + error.message;
@@ -103,8 +112,7 @@
             setTimeout(() => {
                 submitBtn.disabled = false;
                 submitBtn.style.opacity = '1';
-                // 復帰後のボタンテキストも変更
-                submitBtn.innerText = '名歌の中から一首選んでもらう';
+                submitBtn.innerText = '選歌してもらう';
             }, 10000);
         }
     }
