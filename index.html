@@ -4,38 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI短歌ソムリエ（β版）</title>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; color: #333; text-align: center; padding: 50px 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h1 { font-size: 24px; color: #555; }
-        textarea { width: 100%; height: 100px; padding: 10px; margin-top: 15px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; resize: vertical; }
-        button { background-color: #8c7a6b; color: white; border: none; padding: 12px 25px; margin-top: 20px; font-size: 16px; border-radius: 5px; cursor: pointer; transition: 0.3s; }
-        button:hover { background-color: #6b5c4f; }
-        #result { margin-top: 30px; text-align: left; line-height: 1.8; white-space: pre-wrap; padding: 20px; background: #fdfdfd; border-left: 4px solid #8c7a6b; display: none; }
-        .loading { display: none; margin-top: 20px; color: #888; }
-    </style>
     
-    <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1220415790257239" crossorigin="anonymous"></script>
-</head>
-    
 </head>
 <body>
 
-<div class="container">
-    <h1>🍵 AI短歌ソムリエ</h1>
-    <p>今のあなたの気分や情景を教えてください。</p>
-    
-    <textarea id="moodInput" placeholder="例：雨の音を聞きながら、少し感傷的な気分..."></textarea>
-    <br>
-    <button onclick="getTanka()">選歌してもらう</button>
+<div class="wrapper">
+    <div class="container">
+        <h1>🍵 AI短歌ソムリエ（β版）</h1>
+        <h3>管理人がこれまでに詠んだ短歌から<br>AIが今のあなたにおすすめの一首をセレクトします</h3>
+        <p>今のあなたの気分や情景を教えてください。</p>
+        
+        <textarea id="moodInput" placeholder="例：雨の音を聞きながら、少し感傷的な気分..."></textarea>
+        <br>
+        <button onclick="getTanka()">選歌してもらう</button>
 
-    <div id="loading" class="loading">ソムリエがあなたのための1首を選んでいます...</div>
-    <div id="result"></div>
+        <div id="loading" class="loading">ソムリエがあなたのための1首を選んでいます...</div>
+        <div id="result"></div>
+    </div>
+
+    <section aria-labelledby="profile-heading">
+        <h2 id="profile-heading">開発者プロフィール</h2>
+        <div class="profile-card">
+            <div class="profile-header">
+                <img src="https://momongacarnival.com/assets/icon.png" alt="さいとうのプロフィール画像" class="profile-icon">
+                <p class="profile-name">さいとう</p>
+            </div>
+            
+            <p class="profile-catchphrase">日常生活は、もっと楽しくなきゃ</p>
+            
+            <p class="profile-desc">
+                AWSやGoogle Cloudなどを学びながら、WebアプリやWebサイトを制作しているしがないエンジニア。相棒のAIはGeminiです。元国語科教員という経歴を持っており、短歌を詠んだりエッセイを書いたりすることもあります。<br>
+                大衆社会において、大量生産/大量消費されるコンテンツには忘れられてしまった遊び心を感じられるような創作活動を大切にしています。
+            </p>
+
+            <div class="profile-link-area">
+                <a href="https://momongacarnival.com/" class="btn-home">公式サイト「さすらいのモモンガカーニバル」へ</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <ul>
+            <li><a href="https://momongacarnival.com/privacy/index.html">プライバシーポリシー</a></li>
+            <li><a href="https://momongacarnival.com/contact/index.html">お問い合わせ</a></li>
+        </ul>
+        <p>&copy; さすらいのモモンガカーニバル</p>
+    </footer>
 </div>
 
 <script>
-    // ★ここに先ほど開通したAPI GatewayのURL（ルート含む）を貼り付けます★
     const API_URL = "https://3ksw35h88a.execute-api.ap-northeast-1.amazonaws.com/recommend";
 
     async function getTanka() {
@@ -48,7 +72,6 @@
             return;
         }
 
-        // 表示の切り替え
         resultDiv.style.display = 'none';
         loadingDiv.style.display = 'block';
 
@@ -63,7 +86,6 @@
 
             const data = await response.json();
             
-            // 結果を表示
             resultDiv.innerText = data.reply;
             resultDiv.style.display = 'block';
         } catch (error) {
