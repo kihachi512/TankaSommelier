@@ -52,6 +52,24 @@
         </div>
 
         <div class="settings-card">
+            <h3>メールアドレスの変更</h3>
+            <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">新しいメールアドレスを入力してください。確認コードが送信されます。</p>
+            
+            <div id="emailUpdateArea">
+                <input type="email" id="newEmailInput" class="setting-input" placeholder="新しいメールアドレス">
+                <button class="setting-btn" id="btnEmail" onclick="changeEmail()">メールアドレスを更新する</button>
+            </div>
+            
+            <div id="emailVerifyArea" style="display: none;">
+                <p style="font-size: 0.85em; color: #d35400; font-weight: bold; margin-bottom: 10px;">※新しいメールアドレスに確認コードを送信しました。</p>
+                <input type="text" id="emailCodeInput" class="setting-input" placeholder="6桁の確認コード">
+                <button class="setting-btn" id="btnVerifyEmail" onclick="verifyEmailCode()" style="background: #e67e22;">コードを確認して完了</button>
+            </div>
+            
+            <div id="msgEmail" class="msg"></div>
+        </div>
+
+        <div class="settings-card">
             <h3>パスワードの変更</h3>
             <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">現在のパスワードと、新しいパスワード（8文字以上、大文字・小文字・数字・記号を含む）を入力してください。</p>
             
@@ -73,13 +91,14 @@
             <div id="msgPassword" class="msg"></div>
         </div>
     </div>
+    
     <footer style="margin-top: 80px; text-align: center; font-size: 0.85rem; color: var(--border-color);">
         <ul style="list-style: none; padding: 0; display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
           <li><a href="https://momongacarnival.com/privacy/index.html" style="color: var(--border-color); text-decoration: underline;">プライバシーポリシー</a></li>
           <li><a href="https://momongacarnival.com/contact/index.html" style="color: var(--border-color); text-decoration: underline;">お問い合わせ</a></li>
         </ul>
         <p>&copy; さすらいのモモンガカーニバル</p>
-      </footer>
+    </footer>
 </div>
 
 <script>
@@ -88,10 +107,8 @@
     const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
     const cognitoUser = userPool.getCurrentUser();
 
-    // ★追加：教えていただいたURL + Lambdaの関数名
     const SYNC_API_URL = "https://md8sp3pwz8.execute-api.ap-northeast-1.amazonaws.com/default/sync-author-name";
 
-    // アイコンのSVGデータ
     const iconEyeOpen = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
     const iconEyeClosed = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
 
@@ -125,7 +142,7 @@
         }
     }
 
-    // ★変更：ここが新しくなります！（Cognito変更後にDynamoDBも更新する処理）
+    // 1. ニックネームを変更する処理
     function changeNickname() {
         const newNickname = document.getElementById('newNicknameInput').value;
         const msgDiv = document.getElementById('msgNickname');
@@ -139,7 +156,6 @@
 
         const attributeList = [ new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'nickname', Value: newNickname }) ];
 
-        // まずCognitoの名前を更新する
         cognitoUser.updateAttributes(attributeList, async function(err, result) {
             if (err) {
                 btn.disabled = false;
@@ -147,11 +163,9 @@
                 msgDiv.style.color = "red"; return;
             }
 
-            // Cognitoの更新に成功したら、ブラウザの記憶を書き換える
             localStorage.setItem('tanka_nickname', newNickname);
             msgDiv.innerText = "過去の短歌の署名を書き換えています...";
 
-            // DynamoDBの過去の投稿も新しい名前に書き換えるAPIを叩く
             try {
                 const accessToken = localStorage.getItem('tanka_access_token');
                 const response = await fetch(SYNC_API_URL, {
@@ -182,7 +196,68 @@
         });
     }
 
-    // 2. パスワードを変更する処理
+    // ★追加：2-1. メールアドレスの変更要求を送信する処理
+    function changeEmail() {
+        const newEmail = document.getElementById('newEmailInput').value;
+        const msgDiv = document.getElementById('msgEmail');
+        const btn = document.getElementById('btnEmail');
+
+        if (!newEmail) { msgDiv.innerText = "※新しいメールアドレスを入力してください"; msgDiv.style.color = "red"; return; }
+        
+        btn.disabled = true;
+        msgDiv.innerText = "更新リクエストを送信中...";
+        msgDiv.style.color = "#333";
+
+        const attributeList = [ new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'email', Value: newEmail }) ];
+
+        cognitoUser.updateAttributes(attributeList, function(err, result) {
+            btn.disabled = false;
+            if (err) {
+                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.style.color = "red";
+                return;
+            }
+            
+            // 成功したら、コード入力画面に切り替える
+            document.getElementById('emailUpdateArea').style.display = 'none';
+            document.getElementById('emailVerifyArea').style.display = 'block';
+            msgDiv.innerText = "";
+        });
+    }
+
+    // ★追加：2-2. 届いたコードでメールアドレスを検証する処理
+    function verifyEmailCode() {
+        const code = document.getElementById('emailCodeInput').value;
+        const msgDiv = document.getElementById('msgEmail');
+        const btn = document.getElementById('btnVerifyEmail');
+
+        if (!code) { msgDiv.innerText = "※確認コードを入力してください"; msgDiv.style.color = "red"; return; }
+
+        btn.disabled = true;
+        msgDiv.innerText = "コードを確認中...";
+        msgDiv.style.color = "#333";
+
+        cognitoUser.verifyAttribute('email', code, {
+            onSuccess: function() {
+                btn.disabled = false;
+                msgDiv.innerText = "✅ メールアドレスの更新が完了しました！";
+                msgDiv.style.color = "#2c5e3b";
+                
+                // UIを元の状態に戻す
+                document.getElementById('emailVerifyArea').style.display = 'none';
+                document.getElementById('newEmailInput').value = '';
+                document.getElementById('emailCodeInput').value = '';
+                document.getElementById('emailUpdateArea').style.display = 'block';
+            },
+            onFailure: function(err) {
+                btn.disabled = false;
+                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.style.color = "red";
+            }
+        });
+    }
+
+    // 3. パスワードを変更する処理
     function changePassword() {
         const oldPassword = document.getElementById('oldPasswordInput').value;
         const newPassword = document.getElementById('newPasswordInput').value;
