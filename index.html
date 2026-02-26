@@ -5,20 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>短歌ソムリエ（β版）</title>
     
-    <meta name="description" content="みんなが投稿した短歌の中から、AIソムリエが今のあなたの気分に寄り添う短歌を一首選び、優しく解説するサービスです。">
-    
-    <meta property="og:title" content="短歌ソムリエ（β版）">
-    <meta property="og:description" content="今の気分を教えると、AIがみんなの短歌からあなたにぴったりな一首を処方します。あなたの短歌も投稿してみませんか？">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://tankasommelier.momongacarnival.com">
-    <meta property="og:image" content="https://momongacarnival.com/assets/momonga-500x500.png">
-    <meta property="og:site_name" content="さすらいのモモンガカーニバル">
-
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="短歌ソムリエ（β版）">
-    <meta name="twitter:description" content="今の気分を教えると、AIがみんなの短歌からあなたにぴったりな一首を処方します。">
-    <meta name="twitter:image" content="https://momongacarnival.com/assets/momonga-500x500.png">
-
     <link rel="icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
     <link rel="apple-touch-icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
     
@@ -27,21 +13,20 @@
     <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
-
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1220415790257239" crossorigin="anonymous"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-94FWLN36SL"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-94FWLN36SL');
-    </script>
+    
+    <style>
+        .auth-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+    </style>
 </head>
 <body>
 
 <div class="wrapper">
     <div class="container">
-        <h1>🍵 短歌ソムリエ（β版）</h1>
+        
+        <div id="userStatusBar" style="text-align: right; margin-bottom: 15px; font-size: 0.9em;">
+            </div>
+
+        <h1 style="margin-top: 0;">🍵 短歌ソムリエ（β版）</h1>
         
         <h3>みんなが投稿した短歌の中から、<br>AIソムリエが今のあなたに寄り添う一首を案内します。</h3>
         
@@ -54,10 +39,11 @@
             <div id="result"></div>
         </div>
 
-        <div style="background: #eef5ee; padding: 20px; border-radius: 8px;">
+        <div style="background: #eef5ee; padding: 20px; border-radius: 8px; position: relative;">
             <h3 style="margin-top: 0; color: #2c5e3b;">✒️ あなたの短歌を投稿する</h3>
+            <p style="font-size: 0.85em; color: #555;">ログインすると「マイページ」に自分の短歌が記録されます。<br>未ログインの場合は「詠み人知らず」として投稿されます。</p>
             
-            <input type="text" id="postAuthor" placeholder="ペンネーム" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit;">
+            <input type="text" id="postAuthor" class="auth-input" disabled style="background: #e0e0e0; font-weight: bold;">
             <textarea id="postTanka" placeholder="短歌を入力してください"></textarea>
             <br>
             <button id="postBtn" onclick="postTanka()" style="background-color: #4CAF50;">投稿する</button>
@@ -65,61 +51,57 @@
         </div>
     </div>
 
-    <section aria-labelledby="profile-heading">
-        <h2 id="profile-heading">開発者プロフィール</h2>
-        <div class="profile-card">
-            <div class="profile-header">
-                <img src="https://momongacarnival.com/assets/icon.png" alt="さいとうのプロフィール画像" class="profile-icon">
-                <p class="profile-name">さいとう</p>
-            </div>
-            
-            <p class="profile-catchphrase">日常生活は、もっと楽しくなきゃ</p>
-            
-            <p class="profile-desc">
-                AWSやGoogle Cloudなどを学びながら、WebアプリやWebサイトを制作しているしがないエンジニア。相棒のAIはGeminiです。元国語科教員という経歴を持っており、短歌を詠んだりエッセイを書いたりすることもあります。<br>
-                大衆社会において、大量生産/大量消費されるコンテンツには忘れられてしまった遊び心を感じられるような創作活動を大切にしています。
-            </p>
-
-            <div class="profile-link-area">
-                <a href="https://momongacarnival.com/" class="btn-home">公式サイト「さすらいのモモンガカーニバル」へ</a>
-            </div>
-        </div>
-    </section>
-
     <footer>
-        <ul>
-            <li><a href="https://momongacarnival.com/privacy/index.html">プライバシーポリシー</a></li>
-            <li><a href="https://momongacarnival.com/contact/index.html">お問い合わせ</a></li>
-        </ul>
         <p>&copy; さすらいのモモンガカーニバル</p>
     </footer>
 </div>
 
 <script>
-    // 既存の選歌用API
     const GET_API_URL = "https://3ksw35h88a.execute-api.ap-northeast-1.amazonaws.com/recommend";
-    
-    // 投稿用のAPI
     const POST_API_URL = "https://y004ehl6p5.execute-api.ap-northeast-1.amazonaws.com/default/tanka-posting";
 
+    // 画面を開いた時にログイン状態をチェックする
+    function checkLoginStatus() {
+        const nickname = localStorage.getItem('tanka_nickname');
+        const statusBar = document.getElementById('userStatusBar');
+        const postAuthor = document.getElementById('postAuthor');
+        
+        if (nickname) {
+            // ログイン済み：マイページへのリンクとログアウトを表示
+            statusBar.innerHTML = `ようこそ、<a href="author.html?author=${encodeURIComponent(nickname)}" style="color: #2c5e3b; font-weight: bold;">${nickname}</a> さん！ <a href="#" onclick="logOut()" style="color: #7f8c8d; text-decoration: none; margin-left: 10px;">[ログアウト]</a>`;
+            postAuthor.value = nickname; 
+        } else {
+            // 未ログイン：login.html へのリンクを表示
+            statusBar.innerHTML = `<a href="login.html" style="color: #d35400; font-weight: bold; text-decoration: none;">👤 新規登録 / ログイン</a>`;
+            postAuthor.value = '詠み人知らず'; 
+        }
+    }
+
+    // ログアウト処理（ブラウザの記憶を消して再読み込み）
+    function logOut() {
+        localStorage.removeItem('tanka_nickname');
+        localStorage.removeItem('tanka_access_token');
+        // Cognitoの不要なデータもお掃除
+        Object.keys(localStorage).forEach(key => {
+            if(key.startsWith('CognitoIdentityServiceProvider')) localStorage.removeItem(key);
+        });
+        location.reload(); 
+    }
+
+    window.onload = checkLoginStatus;
+
+    // --- 以降は元の選歌・投稿のプログラム ---
     async function getTanka() {
         const mood = document.getElementById('moodInput').value;
         const resultDiv = document.getElementById('result');
         const loadingDiv = document.getElementById('loading');
         const submitBtn = document.getElementById('getBtn');
 
-        if (!mood) {
-            alert("気分を入力してくださいね。");
-            return;
-        }
+        if (!mood) { alert("気分を入力してくださいね。"); return; }
 
         submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.5';
-        submitBtn.innerText = 'ソムリエが選歌中...';
         resultDiv.style.display = 'none';
         loadingDiv.style.display = 'block';
-        
-        // 連続で押したときに前回のボタンが残らないよう、一度中身を空にする
         resultDiv.innerHTML = ''; 
 
         try {
@@ -132,80 +114,70 @@
             if (!response.ok) throw new Error('通信エラーが発生しました');
 
             const data = await response.json();
-            
-            // AIの解説テキストをセット
             resultDiv.innerText = data.reply;
             
-            // ★追加：Lambdaから「author」が返ってきたらボタンを作る
             if (data.author) {
                 const linkBtn = document.createElement('button');
                 linkBtn.innerText = `✒️ ${data.author} の投稿一覧を見る`;
                 linkBtn.style.marginTop = '20px';
                 linkBtn.style.backgroundColor = '#2c5e3b';
+                linkBtn.style.color = 'white';
+                linkBtn.style.border = 'none';
+                linkBtn.style.padding = '8px 12px';
+                linkBtn.style.borderRadius = '4px';
+                linkBtn.style.cursor = 'pointer';
                 
-                // ボタンを押したら author.html にURLパラメータ付きで遷移
-                linkBtn.onclick = () => {
-                    window.location.href = `author.html?author=${encodeURIComponent(data.author)}`;
-                };
+                linkBtn.onclick = () => { window.location.href = `author.html?author=${encodeURIComponent(data.author)}`; };
                 
-                // 解説テキストの下に改行を挟んでボタンを追加
                 resultDiv.appendChild(document.createElement('br'));
                 resultDiv.appendChild(linkBtn);
             }
 
             resultDiv.style.display = 'block';
-            
         } catch (error) {
-            resultDiv.innerText = "すみません、ソムリエが席を外しているようです。\n" + error.message;
+            resultDiv.innerText = "エラー: " + error.message;
             resultDiv.style.display = 'block';
         } finally {
             loadingDiv.style.display = 'none';
-            setTimeout(() => {
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                submitBtn.innerText = '選歌してもらう';
-            }, 10000);
+            submitBtn.disabled = false;
         }
     }
 
     async function postTanka() {
         const tanka = document.getElementById('postTanka').value;
-        const author = document.getElementById('postAuthor').value;
         const postResultDiv = document.getElementById('postResult');
         const postBtn = document.getElementById('postBtn');
 
-        if (!tanka) {
-            alert("短歌を入力してくださいね。");
-            return;
-        }
+        if (!tanka) { alert("※短歌を入力してください"); return; }
 
         postBtn.disabled = true;
-        postBtn.style.opacity = '0.5';
         postBtn.innerText = '送信中...';
         postResultDiv.innerText = '';
 
         try {
+            const accessToken = localStorage.getItem('tanka_access_token');
+            const headers = { 'Content-Type': 'application/json' };
+            if (accessToken) headers['Authorization'] = accessToken;
+
             const response = await fetch(POST_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tanka: tanka, author: author || '名無しの歌人' })
+                headers: headers,
+                body: JSON.stringify({ tanka: tanka }) 
             });
 
-            if (!response.ok) throw new Error('通信エラーが発生しました');
+            if (!response.ok) throw new Error('※通信エラーが発生しました');
 
             const data = await response.json();
-            
             postResultDiv.innerText = data.message;
             postResultDiv.style.color = "#2c5e3b";
             document.getElementById('postTanka').value = '';
             
         } catch (error) {
-            postResultDiv.innerText = "エラーが発生しました: " + error.message;
+            postResultDiv.innerText = "※エラーが発生しました: " + error.message;
             postResultDiv.style.color = "red";
         } finally {
             setTimeout(() => {
                 postBtn.disabled = false;
-                postBtn.style.opacity = '1';
                 postBtn.innerText = '投稿する';
             }, 3000);
         }
