@@ -110,9 +110,19 @@
     let cognitoUser = null; 
     let resetUser = null; 
 
+    // 既にログイン済みの場合はトップページに弾き返す処理をアップデート！
     window.onload = function() {
-        if(localStorage.getItem('tanka_nickname')) {
+        const nickname = localStorage.getItem('tanka_nickname');
+        const sub = localStorage.getItem('tanka_sub');
+
+        // ★名前も固有IDも両方揃っている「完全なログイン状態」ならトップへ戻す
+        if(nickname && sub) {
             window.location.href = 'index.html';
+        } else {
+            // ★古い中途半端なデータ（名前だけ残っている等）があれば、綺麗にお掃除する！
+            localStorage.removeItem('tanka_nickname');
+            localStorage.removeItem('tanka_access_token');
+            localStorage.removeItem('tanka_sub');
         }
     }
 
@@ -208,12 +218,18 @@
                 const accessToken = result.getAccessToken().getJwtToken();
                 cognitoUser.getUserAttributes(function(err, attributes) {
                     if (err) { msg.innerText = err.message; return; }
+                    
                     let nicknameStr = "";
+                    let subStr = ""; // ★追加：固有IDを入れる箱
+                    
                     for (let i = 0; i < attributes.length; i++) {
                         if (attributes[i].getName() === 'nickname') nicknameStr = attributes[i].getValue();
+                        if (attributes[i].getName() === 'sub') subStr = attributes[i].getValue(); // ★追加：固有IDを取得
                     }
                     localStorage.setItem('tanka_nickname', nicknameStr);
                     localStorage.setItem('tanka_access_token', accessToken); 
+                    localStorage.setItem('tanka_sub', subStr); // ★追加：ブラウザに固有IDを記憶させる
+                    
                     window.location.href = 'index.html';
                 });
             },

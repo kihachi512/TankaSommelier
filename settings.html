@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定 - 短歌ソムリエ</title>
+    
+    <link rel="icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
+
+    <style>
+        .settings-card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: left; }
+        .settings-card h3 { margin-top: 0; color: #2c5e3b; border-bottom: 2px dashed #e0e0e0; padding-bottom: 10px; font-size: 1.2em;}
+        .setting-input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        .setting-btn { padding: 10px 15px; border: none; border-radius: 4px; color: white; cursor: pointer; font-family: inherit; font-weight: bold; background: #2c5e3b; transition: opacity 0.2s;}
+        .setting-btn:hover { opacity: 0.8; }
+        .setting-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        /* パスワード表示切替用のスタイル */
+        .password-wrapper { position: relative; width: 100%; display: flex; align-items: center; margin-bottom: 15px; }
+        .password-wrapper .setting-input { margin-bottom: 0; padding-right: 40px; }
+        .toggle-password {
+            position: absolute; right: 10px; cursor: pointer; color: #888; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+        }
+        .toggle-password svg { width: 20px; height: 20px; stroke: currentColor; }
+        .site-title-link { text-decoration: none; color: inherit; transition: opacity 0.2s; }
+        .site-title-link:hover { opacity: 0.7; }
+        .msg { font-size: 0.9em; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="container">
+        <h1 style="margin-top: 0; margin-bottom: 30px; text-align: center;">
+            <a href="index.html" class="site-title-link">🍵 短歌ソムリエ（β版）</a>
+        </h1>
+
+        <h2 style="color: #333; margin-bottom: 20px;">⚙️ アカウント設定</h2>
+
+        <div class="settings-card">
+            <h3>ニックネームの変更</h3>
+            <input type="text" id="newNicknameInput" class="setting-input" placeholder="新しいニックネーム">
+            <button class="setting-btn" id="btnNickname" onclick="changeNickname()">ニックネームを更新する</button>
+            <div id="msgNickname" class="msg"></div>
+        </div>
+
+        <div class="settings-card">
+            <h3>パスワードの変更</h3>
+            <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">現在のパスワードと、新しいパスワード（8文字以上、大文字・小文字・数字・記号を含む）を入力してください。</p>
+            
+            <div class="password-wrapper">
+                <input type="password" id="oldPasswordInput" class="setting-input" placeholder="現在のパスワード">
+                <span class="toggle-password" onclick="toggleVisibility('oldPasswordInput', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </span>
+            </div>
+
+            <div class="password-wrapper">
+                <input type="password" id="newPasswordInput" class="setting-input" placeholder="新しいパスワード">
+                <span class="toggle-password" onclick="toggleVisibility('newPasswordInput', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </span>
+            </div>
+
+            <button class="setting-btn" id="btnPassword" onclick="changePassword()" style="background: #d35400;">パスワードを更新する</button>
+            <div id="msgPassword" class="msg"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Cognitoの設定
+    const poolData = { UserPoolId: 'ap-northeast-1_eCaiHRE4i', ClientId: '43kh9fab4798b32548q9ap1nmn' };
+    const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+    const cognitoUser = userPool.getCurrentUser(); // ブラウザに保存されているユーザー情報を取得
+
+    // アイコンのSVGデータ
+    const iconEyeOpen = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const iconEyeClosed = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+
+    // 画面を開いた時の処理（未ログインなら弾く）
+    window.onload = function() {
+        if (!cognitoUser) {
+            alert("ログインが必要です。");
+            window.location.href = 'login.html';
+            return;
+        }
+        // セッションが有効か確認し、現在のニックネームを入力欄にセットする
+        cognitoUser.getSession(function(err, session) {
+            if (err) {
+                alert("セッションの有効期限が切れました。再度ログインしてください。");
+                window.location.href = 'login.html';
+                return;
+            }
+            const currentNickname = localStorage.getItem('tanka_nickname');
+            if (currentNickname) {
+                document.getElementById('newNicknameInput').value = currentNickname;
+            }
+        });
+    }
+
+    // パスワードの表示・非表示切替
+    function toggleVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            iconElement.innerHTML = iconEyeOpen;
+        } else {
+            input.type = "password";
+            iconElement.innerHTML = iconEyeClosed;
+        }
+    }
+
+    // 1. ニックネームを変更する処理
+    function changeNickname() {
+        const newNickname = document.getElementById('newNicknameInput').value;
+        const msgDiv = document.getElementById('msgNickname');
+        const btn = document.getElementById('btnNickname');
+
+        if (!newNickname) { msgDiv.innerText = "※新しいニックネームを入力してください"; msgDiv.style.color = "red"; return; }
+        
+        btn.disabled = true;
+        msgDiv.innerText = "更新中...";
+        msgDiv.style.color = "#333";
+
+        const attributeList = [ new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'nickname', Value: newNickname }) ];
+
+        cognitoUser.updateAttributes(attributeList, function(err, result) {
+            btn.disabled = false;
+            if (err) {
+                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.style.color = "red";
+                return;
+            }
+            // 成功したらブラウザの記憶も新しい名前に書き換える
+            localStorage.setItem('tanka_nickname', newNickname);
+            msgDiv.innerText = "✅ ニックネームを更新しました！";
+            msgDiv.style.color = "#2c5e3b";
+        });
+    }
+
+    // 2. パスワードを変更する処理
+    function changePassword() {
+        const oldPassword = document.getElementById('oldPasswordInput').value;
+        const newPassword = document.getElementById('newPasswordInput').value;
+        const msgDiv = document.getElementById('msgPassword');
+        const btn = document.getElementById('btnPassword');
+
+        if (!oldPassword || !newPassword) { msgDiv.innerText = "※パスワードを入力してください"; msgDiv.style.color = "red"; return; }
+        
+        btn.disabled = true;
+        msgDiv.innerText = "更新中...";
+        msgDiv.style.color = "#333";
+
+        cognitoUser.changePassword(oldPassword, newPassword, function(err, result) {
+            btn.disabled = false;
+            if (err) {
+                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.style.color = "red";
+                return;
+            }
+            msgDiv.innerText = "✅ パスワードを更新しました！";
+            msgDiv.style.color = "#2c5e3b";
+            document.getElementById('oldPasswordInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+        });
+    }
+</script>
+
+</body>
+</html>

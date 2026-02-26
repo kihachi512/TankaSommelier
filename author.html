@@ -44,6 +44,17 @@
         .site-title-link:hover {
             opacity: 0.7;
         }
+        /* ★追加：削除アイコンのスタイル */
+        .delete-icon {
+            position: absolute; top: 15px; right: 15px;
+            cursor: pointer; color: #aaa; /* 普段は薄い灰色 */
+            transition: color 0.2s;
+            width: 20px; height: 20px;
+            z-index: 1; /* カードの上に表示 */
+        }
+        /* ホバーした時だけ少し赤っぽくして「危険」であることを伝える */
+        .delete-icon:hover { color: #d9534f; }
+        .delete-icon svg { width: 100%; height: 100%; fill: currentColor; }
     </style>
 </head>
 <body>
@@ -70,12 +81,13 @@
 </div>
 
 <script>
-    const params = new URLSearchParams(window.location.search);
+	const params = new URLSearchParams(window.location.search);
+    const userId = params.get('user_id'); // ★名前ではなくIDを受け取る
     const authorName = params.get('author');
 
     // ★ご自身のAPI URLに合わせてください！
     const GET_AUTHOR_API_URL = "https://e2mj433jd0.execute-api.ap-northeast-1.amazonaws.com/default/get-author-tanka";
-    // ★Step2で作った「削除用」のAPI URLをここに貼り付けてください！
+    // ★削除用APIのURL
     const DELETE_API_URL = "https://ravjq6w60a.execute-api.ap-northeast-1.amazonaws.com/default/tanka-deleting";
 
     function formatDate(isoString) {
@@ -89,20 +101,23 @@
         const container = document.getElementById('tankaListContainer');
         const loading = document.getElementById('loading');
 
-        if (!authorName) {
+        // ★IDがない場合はエラー
+        if (!userId) {
             nameDisplay.innerText = "作者が指定されていません";
             loading.style.display = 'none'; return;
         }
 
-        nameDisplay.innerText = `✒️ ${authorName} のページ`;
-        document.title = `${authorName}のページ - 短歌ソムリエ`;
+        const displayName = authorName || '詠み人知らず';
+        nameDisplay.innerText = `✒️ ${displayName} のページ`;
+        document.title = `${displayName}のページ - 短歌ソムリエ`;
 
-        // ★ログイン中のユーザー名を取得（本人かどうか判定するため）
-        const loggedInUser = localStorage.getItem('tanka_nickname');
-        const isOwner = (loggedInUser === authorName);
+        // ★本人確認を「名前」ではなく「固有ID(sub)」で行う！
+        const loggedInSub = localStorage.getItem('tanka_sub');
+        const isOwner = (loggedInSub && loggedInSub === userId);
 
         try {
-            const response = await fetch(`${GET_AUTHOR_API_URL}?author=${encodeURIComponent(authorName)}`);
+            // ★検索もIDで行う
+            const response = await fetch(`${GET_AUTHOR_API_URL}?user_id=${encodeURIComponent(userId)}&author=${encodeURIComponent(displayName)}`);
             if (!response.ok) throw new Error('通信エラーが発生しました');
             
             const data = await response.json();
@@ -115,13 +130,12 @@
                 return;
             }
 
-            // ★追加：確実に「新しい順（降順）」になるように日付で並び替える
             tankaList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
             tankaList.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'tanka-card';
-                card.style.position = 'relative'; // 削除ボタンの配置用
+                card.style.position = 'relative';
                 
                 const text = document.createElement('div');
                 text.className = 'tanka-text';
@@ -134,14 +148,15 @@
                 card.appendChild(text);
                 card.appendChild(date);
 
-                // ★追加：本人のページを見ている時だけ「削除ボタン」を出現させる
+                // 本人なら右上にゴミ箱アイコンを出す
                 if (isOwner && item.post_id) {
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.innerText = "🗑️ 削除";
-                    deleteBtn.style.cssText = "position: absolute; bottom: 15px; left: 15px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;";
+                    const deleteIcon = document.createElement('span');
+                    deleteIcon.className = 'delete-icon';
+                    deleteIcon.title = "この短歌を削除する";
+                    deleteIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
                     
-                    deleteBtn.onclick = () => deleteTanka(item.post_id);
-                    card.appendChild(deleteBtn);
+                    deleteIcon.onclick = () => deleteTanka(item.post_id);
+                    card.appendChild(deleteIcon);
                 }
 
                 container.appendChild(card);
@@ -153,39 +168,30 @@
         }
     }
 
-    // ★追加：短歌を削除する関数
     async function deleteTanka(postId) {
-        if (!confirm("本当にこの短歌を削除しますか？\n（※AIの学習用データも完全に消去されます）")) {
-            return;
-        }
+        if (!confirm("本当にこの短歌を削除しますか？\n（※AIの学習用データも完全に消去されます）")) return;
 
         const accessToken = localStorage.getItem('tanka_access_token');
         if (!accessToken) {
             alert("セッションが切れています。再度ログインしてください。");
-            window.location.href = 'login.html';
-            return;
+            window.location.href = 'login.html'; return;
         }
 
         try {
             const response = await fetch(DELETE_API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': accessToken
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': accessToken },
                 body: JSON.stringify({ post_id: postId })
             });
 
             if (response.status === 401) {
                 alert("セッションの有効期限が切れました。再度ログインをお願いします。");
-                window.location.href = 'login.html';
-                return;
+                window.location.href = 'login.html'; return;
             }
 
             if (!response.ok) throw new Error('削除に失敗しました');
 
             alert("短歌を削除しました。");
-            // 画面をリロードしてリストを最新にする
             location.reload();
 
         } catch (error) {
