@@ -143,3 +143,40 @@ footer a:hover { color: var(--link-color); }
     border-color: var(--link-color); 
     transform: translateY(-2px); 
 }
+/* =========================================
+   📱 スマホ（画面幅600px以下）向けのレイアウト調整
+   ========================================= */
+@media screen and (max-width: 600px) {
+    /* 1. 外枠をなくして画面の端から端まで広げる */
+    .wrapper {
+        padding: 0 !important;
+    }
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 20px 15px !important; /* 左右の余白を少しスッキリさせる */
+        box-sizing: border-box;
+    }
+
+    /* 2. 右上のログインメニューを中央揃えにして、押しやすくする */
+    #userStatusBar {
+        text-align: center !important;
+        line-height: 2.0; /* 折り返した時に文字同士がくっつかないように行間を広げる */
+        font-size: 0.85em !important;
+        margin-bottom: 25px !important;
+    }
+
+    /* 3. 内側の入力エリア（背景色がついてる場所）の余白を少し削って広くする */
+    div[style*="padding: 20px"] {
+        padding: 15px !important;
+    }
+    
+    /* 4. 入力欄やボタンが画面からはみ出さないようにガード */
+    textarea, input, button {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
