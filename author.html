@@ -23,6 +23,7 @@
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             text-align: left;
+            position: relative; /* ★削除アイコンの位置基準として必要 */
         }
         .tanka-text {
             font-size: 1.1em;
@@ -35,7 +36,6 @@
             text-align: right;
             margin: 0;
         }
-        /* ★追加：タイトルをホバーした時に少し透過させて、押せることを伝える */
         .site-title-link {
             text-decoration: none;
             color: inherit;
@@ -44,15 +44,13 @@
         .site-title-link:hover {
             opacity: 0.7;
         }
-        /* ★追加：削除アイコンのスタイル */
         .delete-icon {
             position: absolute; top: 15px; right: 15px;
-            cursor: pointer; color: #aaa; /* 普段は薄い灰色 */
+            cursor: pointer; color: #aaa;
             transition: color 0.2s;
             width: 20px; height: 20px;
-            z-index: 1; /* カードの上に表示 */
+            z-index: 1;
         }
-        /* ホバーした時だけ少し赤っぽくして「危険」であることを伝える */
         .delete-icon:hover { color: #d9534f; }
         .delete-icon svg { width: 100%; height: 100%; fill: currentColor; }
     </style>
@@ -73,6 +71,12 @@
         </div>
         
         <div id="tankaListContainer"></div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="loadMoreBtn" onclick="fetchAuthorTanka(true)" style="display: none; background-color: #5c7a52; padding: 10px 30px; border-radius: 30px; color: white; border: none; cursor: pointer;">
+                👇 さらに読み込む
+            </button>
+        </div>
     </div>
 
       <footer style="margin-top: 80px; text-align: center; font-size: 0.85rem; color: var(--border-color);">
@@ -85,14 +89,15 @@
 </div>
 
 <script>
-	const params = new URLSearchParams(window.location.search);
-    const userId = params.get('user_id'); // ★名前ではなくIDを受け取る
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('user_id'); 
     const authorName = params.get('author');
 
-    // ★ご自身のAPI URLに合わせてください！
     const GET_AUTHOR_API_URL = "https://e2mj433jd0.execute-api.ap-northeast-1.amazonaws.com/default/get-author-tanka";
-    // ★削除用APIのURL
     const DELETE_API_URL = "https://ravjq6w60a.execute-api.ap-northeast-1.amazonaws.com/default/tanka-deleting";
+
+    // ★追加：次ページを読み込むための「しおり」を記憶する変数
+    let currentLastKey = null;
 
     function formatDate(isoString) {
         if (!isoString) return '';
@@ -100,50 +105,75 @@
         return date.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     }
 
-    async function fetchAuthorTanka() {
+    // ★引数 isLoadMore を追加
+    async function fetchAuthorTanka(isLoadMore = false) {
         const nameDisplay = document.getElementById('authorNameDisplay');
         const container = document.getElementById('tankaListContainer');
         const loading = document.getElementById('loading');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
 
-        // ★IDがない場合はエラー
         if (!userId) {
             nameDisplay.innerText = "作者が指定されていません";
             loading.style.display = 'none'; return;
         }
 
         const displayName = authorName || '詠み人知らず';
-        nameDisplay.innerText = `✒️ ${displayName} のページ`;
-        document.title = `${displayName}のページ - 短歌ソムリエ`;
+        
+        // 初回読み込み時のみ名前とタイトルをセットし、リストを空にする
+        if (!isLoadMore) {
+            nameDisplay.innerText = `✒️ ${displayName} のページ`;
+            document.title = `${displayName}のページ - 短歌ソムリエ`;
+            container.innerHTML = '';
+            currentLastKey = null;
+            loading.style.display = 'block';
+        }
+        
+        loadMoreBtn.innerText = '読み込み中...';
+        loadMoreBtn.disabled = true;
 
-        // ★本人確認を「名前」ではなく「固有ID(sub)」で行う！
         const loggedInSub = localStorage.getItem('tanka_sub');
         const isOwner = (loggedInSub && loggedInSub === userId);
 
         try {
-            // ★検索もIDで行う
-            const response = await fetch(`${GET_AUTHOR_API_URL}?user_id=${encodeURIComponent(userId)}&author=${encodeURIComponent(displayName)}`);
+            // ★修正：GETリクエストからPOSTリクエストに変更（しおりを送るため）
+            const requestBody = { user_id: userId };
+            if (isLoadMore && currentLastKey) {
+                requestBody.exclusive_start_key = currentLastKey;
+            }
+
+            const response = await fetch(GET_AUTHOR_API_URL, {
+                method: 'POST', // Lambdaに合わせてPOSTに変更
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
             if (!response.ok) throw new Error('通信エラーが発生しました');
             
             const data = await response.json();
-            let tankaList = data.tanka_list;
+            
+            // ★Lambdaの修正後のレスポンス形式に合わせて変更
+            let tankaList = data.items || [];
 
             loading.style.display = 'none';
 
-            if (tankaList.length === 0) {
+            if (tankaList.length === 0 && !isLoadMore) {
                 container.innerHTML = '<p>まだ短歌が投稿されていないようです。</p>';
+                loadMoreBtn.style.display = 'none';
                 return;
             }
 
-            tankaList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            // 日付の降順（新しい順）でソート（DynamoDB側でソートされていますが念のため）
+            //tankaList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
             tankaList.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'tanka-card';
-                card.style.position = 'relative';
                 
+                // ★注意: DynamoDBの保存形式に合わせて、item.text か item.tanka かを確認してください
+                // （投稿用Lambdaのコードによりますが、通常は item.tanka のことが多いです。もし表示されなければここを直します）
                 const text = document.createElement('div');
                 text.className = 'tanka-text';
-                text.innerText = item.text;
+                text.innerText = item.text || item.tanka; // どちらでも対応できるように修正
                 
                 const date = document.createElement('p');
                 date.className = 'tanka-date';
@@ -152,7 +182,6 @@
                 card.appendChild(text);
                 card.appendChild(date);
 
-                // 本人なら右上にゴミ箱アイコンを出す
                 if (isOwner && item.post_id) {
                     const deleteIcon = document.createElement('span');
                     deleteIcon.className = 'delete-icon';
@@ -166,9 +195,24 @@
                 container.appendChild(card);
             });
 
+            // ★追加：次のページがあるかチェックしてボタンを制御
+            currentLastKey = data.last_evaluated_key;
+            if (currentLastKey) {
+                loadMoreBtn.style.display = 'inline-block';
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+
         } catch (error) {
             loading.style.display = 'none';
-            container.innerHTML = `<p style="color: red;">読み込みに失敗しました: ${error.message}</p>`;
+            if (!isLoadMore) {
+                container.innerHTML = `<p style="color: red;">読み込みに失敗しました: ${error.message}</p>`;
+            } else {
+                alert("追加の読み込みに失敗しました: " + error.message);
+            }
+        } finally {
+            loadMoreBtn.innerText = '👇 さらに読み込む';
+            loadMoreBtn.disabled = false;
         }
     }
 
@@ -203,7 +247,7 @@
         }
     }
 
-    window.onload = fetchAuthorTanka;
+    window.onload = () => fetchAuthorTanka(false);
 </script>
 
 </body>
