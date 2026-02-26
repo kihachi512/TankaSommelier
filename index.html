@@ -12,11 +12,11 @@
     <meta property="og:description" content="数字や評価を気にせず、ただ純粋に言葉と出会う。今のあなたの気分に寄り添う短歌をAIが選歌します。">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tankasommelier.momongacarnival.com">
-    <meta property="og:image" content="https://momongacarnival.com/assets/momonga-500x500.png"> <meta property="og:site_name" content="さすらいのモモンガカーニバル">
+    <meta property="og:image" content="https://momongacarnival.com/assets/sommelier-ogp.png"> <meta property="og:site_name" content="さすらいのモモンガカーニバル">
     
-    <meta name="twitter:card" content="summary"> <meta name="twitter:site" content="@あなたのTwitterID"> <meta name="twitter:title" content="短歌ソムリエ（β版）">
+    <meta name="twitter:card" content="summary"> <meta name="twitter:site" content="@kihachi512"> <meta name="twitter:title" content="短歌ソムリエ（β版）">
     <meta name="twitter:description" content="「いいね」のない世界で、言葉と出会う。今の気分にぴったりの一首をAIが選んでくれます。">
-    <meta name="twitter:image" content="https://momongacarnival.com/assets/momonga-500x500.png">
+    <meta name="twitter:image" content="https://momongacarnival.com/assets/sommelier-ogp.png">
 
     <link rel="icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
     <link rel="apple-touch-icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
@@ -141,8 +141,6 @@
 
             const data = await response.json();
             resultDiv.innerText = data.reply;
-            
-            // （中略：try〜catchの中の data = await response.json(); の下あたり）
             
             // ★変更：詠み人知らず（anonymous）じゃない時だけボタンを出す
             if (data.author && data.user_id && data.user_id !== 'anonymous') {
