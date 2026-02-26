@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>短歌ソムリエ（β版）</title>
     
-    <meta name="description" content="青空文庫で公開されている名歌の中から、AIソムリエが今のあなたの気分に寄り添う短歌を一首選び、優しく解説するサービスです。">
+    <meta name="description" content="みんなが投稿した短歌の中から、AIソムリエが今のあなたの気分に寄り添う短歌を一首選び、優しく解説するサービスです。">
     
     <meta property="og:title" content="短歌ソムリエ（β版）">
-    <meta property="og:description" content="今の気分を教えると、AIが青空文庫の名歌からあなたにぴったりな一首を処方します。">
+    <meta property="og:description" content="今の気分を教えると、AIがみんなの短歌からあなたにぴったりな一首を処方します。あなたの短歌も投稿してみませんか？">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tankasommelier.momongacarnival.com">
     <meta property="og:image" content="https://momongacarnival.com/assets/momonga-500x500.png">
@@ -16,7 +16,7 @@
 
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="短歌ソムリエ（β版）">
-    <meta name="twitter:description" content="今の気分を教えると、AIが青空文庫の名歌からあなたにぴったりな一首を処方します。">
+    <meta name="twitter:description" content="今の気分を教えると、AIがみんなの短歌からあなたにぴったりな一首を処方します。">
     <meta name="twitter:image" content="https://momongacarnival.com/assets/momonga-500x500.png">
 
     <link rel="icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
@@ -34,7 +34,6 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-94FWLN36SL');
     </script>
 </head>
@@ -43,15 +42,27 @@
 <div class="wrapper">
     <div class="container">
         <h1>🍵 短歌ソムリエ（β版）</h1>
-        <h3>青空文庫で公開されている短歌から、<br>AIソムリエが今のあなたに寄り添う一首を案内します。<br>※現在は、石川啄木『一握の砂』と与謝野晶子『みだれ髪』からお選びしています。</h3>
-        <p>今のあなたの気分や情景を教えてください。</p>
         
-        <textarea id="moodInput" placeholder="例：雨の音を聞きながら、少し感傷的な気分..."></textarea>
-        <br>
-        <button onclick="getTanka()">選歌してもらう</button>
+        <h3>みんなが投稿した短歌の中から、<br>AIソムリエが今のあなたに寄り添う一首を案内します。</h3>
+        
+        <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <p>今のあなたの気分や情景を教えてください。</p>
+            <textarea id="moodInput" placeholder="例：雨の音を聞きながら、少し感傷的な気分..."></textarea>
+            <br>
+            <button id="getBtn" onclick="getTanka()">選歌してもらう</button>
+            <div id="loading" class="loading">ソムリエがあなたのための一首を選歌しています...</div>
+            <div id="result"></div>
+        </div>
 
-        <div id="loading" class="loading">ソムリエがあなたのための一首を選歌しています...</div>
-        <div id="result"></div>
+        <div style="background: #eef5ee; padding: 20px; border-radius: 8px;">
+            <h3 style="margin-top: 0; color: #2c5e3b;">✒️ あなたの短歌を投稿する</h3>
+            
+            <input type="text" id="postAuthor" placeholder="ペンネーム" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit;">
+            <textarea id="postTanka" placeholder="短歌を入力してください"></textarea>
+            <br>
+            <button id="postBtn" onclick="postTanka()" style="background-color: #4CAF50;">投稿する</button>
+            <div id="postResult" style="margin-top: 15px; font-weight: bold; text-align: center;"></div>
+        </div>
     </div>
 
     <section aria-labelledby="profile-heading">
@@ -85,13 +96,17 @@
 </div>
 
 <script>
-    const API_URL = "https://3ksw35h88a.execute-api.ap-northeast-1.amazonaws.com/recommend";
+    // 既存の選歌用API
+    const GET_API_URL = "https://3ksw35h88a.execute-api.ap-northeast-1.amazonaws.com/recommend";
+    
+    // ★追加：先ほど作成した投稿用のAPI
+    const POST_API_URL = "https://y004ehl6p5.execute-api.ap-northeast-1.amazonaws.com/default/tanka-posting";
 
     async function getTanka() {
         const mood = document.getElementById('moodInput').value;
         const resultDiv = document.getElementById('result');
         const loadingDiv = document.getElementById('loading');
-        const submitBtn = document.querySelector('button');
+        const submitBtn = document.getElementById('getBtn');
 
         if (!mood) {
             alert("気分を入力してくださいね。");
@@ -101,12 +116,11 @@
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.5';
         submitBtn.innerText = 'ソムリエが選歌中...';
-
         resultDiv.style.display = 'none';
         loadingDiv.style.display = 'block';
 
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(GET_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mood: mood })
@@ -115,8 +129,6 @@
             if (!response.ok) throw new Error('通信エラーが発生しました');
 
             const data = await response.json();
-            
-            // ★変更：不要になったauthor変数の処理を削除し、スッキリさせました
             resultDiv.innerText = data.reply;
             resultDiv.style.display = 'block';
         } catch (error) {
@@ -124,12 +136,57 @@
             resultDiv.style.display = 'block';
         } finally {
             loadingDiv.style.display = 'none';
-            
             setTimeout(() => {
                 submitBtn.disabled = false;
                 submitBtn.style.opacity = '1';
                 submitBtn.innerText = '選歌してもらう';
             }, 10000);
+        }
+    }
+
+    // ★追加：投稿用のJavaScript関数
+    async function postTanka() {
+        const tanka = document.getElementById('postTanka').value;
+        const author = document.getElementById('postAuthor').value;
+        const postResultDiv = document.getElementById('postResult');
+        const postBtn = document.getElementById('postBtn');
+
+        if (!tanka) {
+            alert("短歌を入力してくださいね。");
+            return;
+        }
+
+        postBtn.disabled = true;
+        postBtn.style.opacity = '0.5';
+        postBtn.innerText = '送信中...';
+        postResultDiv.innerText = '';
+
+        try {
+            const response = await fetch(POST_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // ペンネームが空の場合は「名無しの歌人」とする
+                body: JSON.stringify({ tanka: tanka, author: author || '名無しの歌人' })
+            });
+
+            if (!response.ok) throw new Error('通信エラーが発生しました');
+
+            const data = await response.json();
+            
+            // 成功メッセージを表示し、入力欄を空にする
+            postResultDiv.innerText = data.message;
+            postResultDiv.style.color = "#2c5e3b";
+            document.getElementById('postTanka').value = '';
+            
+        } catch (error) {
+            postResultDiv.innerText = "エラーが発生しました: " + error.message;
+            postResultDiv.style.color = "red";
+        } finally {
+            setTimeout(() => {
+                postBtn.disabled = false;
+                postBtn.style.opacity = '1';
+                postBtn.innerText = '投稿する';
+            }, 3000);
         }
     }
 </script>
