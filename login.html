@@ -6,6 +6,10 @@
     <title>ログイン - 短歌ソムリエ</title>
     
     <link rel="icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
@@ -14,16 +18,21 @@
         .auth-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
         .auth-btn { padding: 10px 15px; border: none; border-radius: 4px; color: white; cursor: pointer; font-family: inherit; font-weight: bold; margin-right: 5px; width: 100%; margin-bottom: 10px;}
         .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .site-title-link { text-decoration: none; color: inherit; transition: opacity 0.2s; }
+        .site-title-link:hover { opacity: 0.7; }
         
-        /* ★追加：タイトルをホバーした時に少し透過させて、押せることを伝える */
-        .site-title-link {
-            text-decoration: none;
-            color: inherit;
-            transition: opacity 0.2s;
+        /* ★アイコン用のスタイル調整 */
+        .password-wrapper { position: relative; width: 100%; display: flex; align-items: center; margin-bottom: 10px; }
+        .password-wrapper .auth-input { margin-bottom: 0; padding-right: 40px; } /* 入力欄の文字がアイコンと被らないように */
+        .toggle-password {
+            position: absolute; right: 10px; cursor: pointer;
+            color: #888; display: flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; transition: color 0.2s;
         }
-        .site-title-link:hover {
-            opacity: 0.7;
-        }
+        .toggle-password:hover { color: #555; }
+        .toggle-password svg { width: 20px; height: 20px; stroke: currentColor; }
+        
+        .text-link { color: #d35400; font-size: 0.85em; text-decoration: underline; cursor: pointer; text-align: center; display: block; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -40,11 +49,21 @@
 
             <div id="unauthView">
                 <input type="email" id="emailInput" class="auth-input" placeholder="メールアドレス">
-                <input type="password" id="passwordInput" class="auth-input" placeholder="パスワード (大文字・小文字・数字・記号を含め8文字以上)">
+                
+                <div class="password-wrapper">
+                    <input type="password" id="passwordInput" class="auth-input" placeholder="パスワード (大文字小文字・数字・記号で8文字以上)">
+                    <span class="toggle-password" onclick="toggleVisibility('passwordInput', this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </span>
+                </div>
+                
                 <input type="text" id="nicknameInput" class="auth-input" placeholder="ニックネーム (新規登録時のみ)">
                 
                 <button class="auth-btn" onclick="logIn()" style="background: #d35400;">ログイン</button>
                 <button class="auth-btn" onclick="signUp()" style="background: #e67e22;">新規登録する</button>
+                
+                <span class="text-link" onclick="showForgotPassword()">パスワードを忘れた方はこちら</span>
+                
                 <p id="authMessage" style="color: red; margin-top: 10px; font-size: 0.9em; text-align: center;"></p>
             </div>
 
@@ -54,25 +73,89 @@
                 <button class="auth-btn" onclick="verifyCode()" style="background: #e67e22;">確認して登録完了</button>
                 <p id="verifyMessage" style="color: red; margin-top: 10px; font-size: 0.9em; text-align: center;"></p>
             </div>
+
+            <div id="forgotPasswordView" style="display: none;">
+                <p style="font-size: 0.9em;">登録したメールアドレスを入力してください。パスワード再設定用のコードを送信します。</p>
+                <input type="email" id="forgotEmailInput" class="auth-input" placeholder="メールアドレス">
+                <button class="auth-btn" onclick="sendResetCode()" style="background: #e67e22;">コードを送信</button>
+                <span class="text-link" onclick="showLoginView()">ログイン画面に戻る</span>
+                <p id="forgotMessage" style="color: red; margin-top: 10px; font-size: 0.9em; text-align: center;"></p>
+            </div>
+
+            <div id="resetPasswordView" style="display: none;">
+                <p style="font-size: 0.9em;">メールに届いたコードと、新しいパスワードを入力してください。</p>
+                <input type="text" id="resetCodeInput" class="auth-input" placeholder="6桁のコード">
+                
+                <div class="password-wrapper">
+                    <input type="password" id="newPasswordInput" class="auth-input" placeholder="新しいパスワード">
+                    <span class="toggle-password" onclick="toggleVisibility('newPasswordInput', this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </span>
+                </div>
+
+                <button class="auth-btn" onclick="confirmNewPassword()" style="background: #d35400;">パスワードを変更</button>
+                <p id="resetMessage" style="color: red; margin-top: 10px; font-size: 0.9em; text-align: center;"></p>
+            </div>
+
         </div>
     </div>
 </div>
 
 <script>
-    // Cognitoの設定
     const poolData = {
         UserPoolId: 'ap-northeast-1_eCaiHRE4i', 
         ClientId: '43kh9fab4798b32548q9ap1nmn' 
     };
     const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
     let cognitoUser = null; 
+    let resetUser = null; 
 
-    // 既にログイン済みの場合はトップページに弾き返す
     window.onload = function() {
         if(localStorage.getItem('tanka_nickname')) {
             window.location.href = 'index.html';
         }
     }
+
+    // ==========================================
+    // UI 切り替え・便利機能
+    // ==========================================
+    
+    // ★追加：プロ仕様のアイコンデータ（SVG）
+    const iconEyeOpen = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const iconEyeClosed = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+
+    // ★変更：アイコンの切り替え処理
+    function toggleVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            iconElement.innerHTML = iconEyeOpen; // 開いた目に変更
+        } else {
+            input.type = "password";
+            iconElement.innerHTML = iconEyeClosed; // 閉じた目（斜線）に変更
+        }
+    }
+
+    function hideAllViews() {
+        document.getElementById('unauthView').style.display = 'none';
+        document.getElementById('verifyView').style.display = 'none';
+        document.getElementById('forgotPasswordView').style.display = 'none';
+        document.getElementById('resetPasswordView').style.display = 'none';
+    }
+
+    function showLoginView() {
+        hideAllViews();
+        document.getElementById('unauthView').style.display = 'block';
+    }
+
+    function showForgotPassword() {
+        hideAllViews();
+        document.getElementById('forgotPasswordView').style.display = 'block';
+    }
+
+    // ==========================================
+    // 認証ロジック (変更なし)
+    // ==========================================
 
     function signUp() {
         const email = document.getElementById('emailInput').value;
@@ -90,7 +173,7 @@
         userPool.signUp(email, password, attributeList, null, function(err, result){
             if (err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); return; }
             cognitoUser = result.user;
-            document.getElementById('unauthView').style.display = 'none';
+            hideAllViews();
             document.getElementById('verifyView').style.display = 'block';
         });
     }
@@ -104,8 +187,7 @@
         cognitoUser.confirmRegistration(code, true, function(err, result) {
             if (err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); return; }
             alert("登録完了しました！続けてログインしてください。");
-            document.getElementById('verifyView').style.display = 'none';
-            document.getElementById('unauthView').style.display = 'block';
+            showLoginView();
             document.getElementById('nicknameInput').value = ''; 
         });
     }
@@ -132,12 +214,48 @@
                     }
                     localStorage.setItem('tanka_nickname', nicknameStr);
                     localStorage.setItem('tanka_access_token', accessToken); 
-                    
-                    // ★ログイン成功したらトップページへ自動で戻る！
                     window.location.href = 'index.html';
                 });
             },
             onFailure: function(err) { msg.innerText = "ログイン失敗: " + (err.message || JSON.stringify(err)); },
+        });
+    }
+
+    function sendResetCode() {
+        const email = document.getElementById('forgotEmailInput').value;
+        const msg = document.getElementById('forgotMessage');
+        
+        if(!email) { msg.innerText = "※メールアドレスを入力してください"; return; }
+        msg.innerText = "送信中...";
+
+        resetUser = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+        
+        resetUser.forgotPassword({
+            onSuccess: function (data) {},
+            onFailure: function(err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); },
+            inputVerificationCode: function(data) {
+                msg.innerText = "";
+                hideAllViews();
+                document.getElementById('resetPasswordView').style.display = 'block';
+            }
+        });
+    }
+
+    function confirmNewPassword() {
+        const code = document.getElementById('resetCodeInput').value;
+        const newPassword = document.getElementById('newPasswordInput').value;
+        const msg = document.getElementById('resetMessage');
+
+        if(!code || !newPassword) { msg.innerText = "※コードと新しいパスワードを入力してください"; return; }
+        msg.innerText = "パスワードを変更中...";
+
+        resetUser.confirmPassword(code, newPassword, {
+            onSuccess: function() {
+                alert("パスワードの変更が完了しました！新しいパスワードでログインしてください。");
+                showLoginView();
+                document.getElementById('passwordInput').value = '';
+            },
+            onFailure: function(err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); }
         });
     }
 </script>
