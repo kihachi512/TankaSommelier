@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歌人のページ - 短歌ソムリエ</title>
+    
+    <link rel="icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
+    <link rel="apple-touch-icon" href="https://momongacarnival.com/assets/momonga-500x500.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        .tanka-card {
+            background: #fff;
+            border-left: 5px solid #2c5e3b;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: left;
+        }
+        .tanka-text {
+            font-size: 1.1em;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        .tanka-date {
+            font-size: 0.8em;
+            color: #888;
+            text-align: right;
+            margin: 0;
+        }
+        /* ★追加：タイトルをホバーした時に少し透過させて、押せることを伝える */
+        .site-title-link {
+            text-decoration: none;
+            color: inherit;
+            transition: opacity 0.2s;
+        }
+        .site-title-link:hover {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="container">
+        <h1 style="margin-top: 0;">
+            <a href="index.html" class="site-title-link">🍵 短歌ソムリエ（β版）</a>
+        </h1>
+        
+        <h2 id="authorNameDisplay" style="color: #2c5e3b; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-top: 30px;">
+            読み込み中...
+        </h2>
+        
+        <p style="text-align: left; margin-bottom: 20px;">これまでに投稿された短歌の一覧です。</p>
+
+        <div id="loading" class="loading" style="display: block;">
+            短歌の記録を探しています...
+        </div>
+        
+        <div id="tankaListContainer"></div>
+    </div>
+
+    <footer>
+        <p>&copy; さすらいのモモンガカーニバル</p>
+    </footer>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const authorName = params.get('author');
+
+    // ★ご自身のAPIエンドポイント
+    const API_BASE_URL = "https://e2mj433jd0.execute-api.ap-northeast-1.amazonaws.com/default/get-author-tanka";
+
+    function formatDate(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function fetchAuthorTanka() {
+        const nameDisplay = document.getElementById('authorNameDisplay');
+        const container = document.getElementById('tankaListContainer');
+        const loading = document.getElementById('loading');
+
+        if (!authorName) {
+            nameDisplay.innerText = "作者が指定されていません";
+            loading.style.display = 'none';
+            return;
+        }
+
+        nameDisplay.innerText = `✒️ ${authorName} のページ`;
+        document.title = `${authorName}のページ - 短歌ソムリエ`;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}?author=${encodeURIComponent(authorName)}`);
+            if (!response.ok) throw new Error('通信エラーが発生しました');
+            
+            const data = await response.json();
+            const tankaList = data.tanka_list;
+
+            loading.style.display = 'none';
+
+            if (tankaList.length === 0) {
+                container.innerHTML = '<p>まだ短歌が投稿されていないようです。</p>';
+                return;
+            }
+
+            tankaList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'tanka-card';
+                
+                const text = document.createElement('div');
+                text.className = 'tanka-text';
+                text.innerText = item.text;
+                
+                const date = document.createElement('p');
+                date.className = 'tanka-date';
+                date.innerText = formatDate(item.created_at);
+
+                card.appendChild(text);
+                card.appendChild(date);
+                container.appendChild(card);
+            });
+
+        } catch (error) {
+            loading.style.display = 'none';
+            container.innerHTML = `<p style="color: red;">読み込みに失敗しました: ${error.message}</p>`;
+        }
+    }
+
+    window.onload = fetchAuthorTanka;
+</script>
+
+</body>
+</html>

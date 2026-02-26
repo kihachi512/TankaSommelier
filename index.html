@@ -99,7 +99,7 @@
     // 既存の選歌用API
     const GET_API_URL = "https://3ksw35h88a.execute-api.ap-northeast-1.amazonaws.com/recommend";
     
-    // ★追加：先ほど作成した投稿用のAPI
+    // 投稿用のAPI
     const POST_API_URL = "https://y004ehl6p5.execute-api.ap-northeast-1.amazonaws.com/default/tanka-posting";
 
     async function getTanka() {
@@ -118,6 +118,9 @@
         submitBtn.innerText = 'ソムリエが選歌中...';
         resultDiv.style.display = 'none';
         loadingDiv.style.display = 'block';
+        
+        // 連続で押したときに前回のボタンが残らないよう、一度中身を空にする
+        resultDiv.innerHTML = ''; 
 
         try {
             const response = await fetch(GET_API_URL, {
@@ -129,8 +132,29 @@
             if (!response.ok) throw new Error('通信エラーが発生しました');
 
             const data = await response.json();
+            
+            // AIの解説テキストをセット
             resultDiv.innerText = data.reply;
+            
+            // ★追加：Lambdaから「author」が返ってきたらボタンを作る
+            if (data.author) {
+                const linkBtn = document.createElement('button');
+                linkBtn.innerText = `✒️ ${data.author} の投稿一覧を見る`;
+                linkBtn.style.marginTop = '20px';
+                linkBtn.style.backgroundColor = '#2c5e3b';
+                
+                // ボタンを押したら author.html にURLパラメータ付きで遷移
+                linkBtn.onclick = () => {
+                    window.location.href = `author.html?author=${encodeURIComponent(data.author)}`;
+                };
+                
+                // 解説テキストの下に改行を挟んでボタンを追加
+                resultDiv.appendChild(document.createElement('br'));
+                resultDiv.appendChild(linkBtn);
+            }
+
             resultDiv.style.display = 'block';
+            
         } catch (error) {
             resultDiv.innerText = "すみません、ソムリエが席を外しているようです。\n" + error.message;
             resultDiv.style.display = 'block';
@@ -144,7 +168,6 @@
         }
     }
 
-    // ★追加：投稿用のJavaScript関数
     async function postTanka() {
         const tanka = document.getElementById('postTanka').value;
         const author = document.getElementById('postAuthor').value;
@@ -165,7 +188,6 @@
             const response = await fetch(POST_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // ペンネームが空の場合は「名無しの歌人」とする
                 body: JSON.stringify({ tanka: tanka, author: author || '名無しの歌人' })
             });
 
@@ -173,7 +195,6 @@
 
             const data = await response.json();
             
-            // 成功メッセージを表示し、入力欄を空にする
             postResultDiv.innerText = data.message;
             postResultDiv.style.color = "#2c5e3b";
             document.getElementById('postTanka').value = '';
