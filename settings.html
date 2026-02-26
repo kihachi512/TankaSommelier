@@ -79,20 +79,21 @@
     // Cognitoの設定
     const poolData = { UserPoolId: 'ap-northeast-1_eCaiHRE4i', ClientId: '43kh9fab4798b32548q9ap1nmn' };
     const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
-    const cognitoUser = userPool.getCurrentUser(); // ブラウザに保存されているユーザー情報を取得
+    const cognitoUser = userPool.getCurrentUser();
+
+    // ★追加：教えていただいたURL + Lambdaの関数名
+    const SYNC_API_URL = "https://md8sp3pwz8.execute-api.ap-northeast-1.amazonaws.com/default/sync-author-name";
 
     // アイコンのSVGデータ
     const iconEyeOpen = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
     const iconEyeClosed = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
 
-    // 画面を開いた時の処理（未ログインなら弾く）
     window.onload = function() {
         if (!cognitoUser) {
             alert("ログインが必要です。");
             window.location.href = 'login.html';
             return;
         }
-        // セッションが有効か確認し、現在のニックネームを入力欄にセットする
         cognitoUser.getSession(function(err, session) {
             if (err) {
                 alert("セッションの有効期限が切れました。再度ログインしてください。");
@@ -106,7 +107,6 @@
         });
     }
 
-    // パスワードの表示・非表示切替
     function toggleVisibility(inputId, iconElement) {
         const input = document.getElementById(inputId);
         if (input.type === "password") {
@@ -118,7 +118,7 @@
         }
     }
 
-    // 1. ニックネームを変更する処理
+    // ★変更：ここが新しくなります！（Cognito変更後にDynamoDBも更新する処理）
     function changeNickname() {
         const newNickname = document.getElementById('newNicknameInput').value;
         const msgDiv = document.getElementById('msgNickname');
@@ -127,22 +127,51 @@
         if (!newNickname) { msgDiv.innerText = "※新しいニックネームを入力してください"; msgDiv.style.color = "red"; return; }
         
         btn.disabled = true;
-        msgDiv.innerText = "更新中...";
+        msgDiv.innerText = "Cognitoを更新中...";
         msgDiv.style.color = "#333";
 
         const attributeList = [ new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'nickname', Value: newNickname }) ];
 
-        cognitoUser.updateAttributes(attributeList, function(err, result) {
-            btn.disabled = false;
+        // まずCognitoの名前を更新する
+        cognitoUser.updateAttributes(attributeList, async function(err, result) {
             if (err) {
+                btn.disabled = false;
                 msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
-                msgDiv.style.color = "red";
-                return;
+                msgDiv.style.color = "red"; return;
             }
-            // 成功したらブラウザの記憶も新しい名前に書き換える
+
+            // Cognitoの更新に成功したら、ブラウザの記憶を書き換える
             localStorage.setItem('tanka_nickname', newNickname);
-            msgDiv.innerText = "✅ ニックネームを更新しました！";
-            msgDiv.style.color = "#2c5e3b";
+            msgDiv.innerText = "過去の短歌の署名を書き換えています...";
+
+            // DynamoDBの過去の投稿も新しい名前に書き換えるAPIを叩く
+            try {
+                const accessToken = localStorage.getItem('tanka_access_token');
+                const response = await fetch(SYNC_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': accessToken
+                    },
+                    body: JSON.stringify({ new_author: newNickname })
+                });
+
+                if (response.status === 401) {
+                    alert("セッションが切れました。再度ログインしてやり直してください。");
+                    window.location.href = 'login.html'; return;
+                }
+
+                if (!response.ok) throw new Error('署名の同期に失敗しました');
+
+                msgDiv.innerText = "✅ ニックネームと過去の署名をすべて更新しました！";
+                msgDiv.style.color = "#2c5e3b";
+
+            } catch (error) {
+                msgDiv.innerText = "⚠️ 名前は変更されましたが、過去の投稿の更新に失敗しました: " + error.message;
+                msgDiv.style.color = "#d35400";
+            } finally {
+                btn.disabled = false;
+            }
         });
     }
 
