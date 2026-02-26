@@ -99,6 +99,13 @@
 
         </div>
     </div>
+    <footer style="margin-top: 80px; text-align: center; font-size: 0.85rem; color: var(--border-color);">
+        <ul style="list-style: none; padding: 0; display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
+          <li><a href="https://momongacarnival.com/privacy/index.html" style="color: var(--border-color); text-decoration: underline;">プライバシーポリシー</a></li>
+          <li><a href="https://momongacarnival.com/contact/index.html" style="color: var(--border-color); text-decoration: underline;">お問い合わせ</a></li>
+        </ul>
+        <p>&copy; さすらいのモモンガカーニバル</p>
+      </footer>
 </div>
 
 <script>
@@ -218,22 +225,40 @@
                 const accessToken = result.getAccessToken().getJwtToken();
                 cognitoUser.getUserAttributes(function(err, attributes) {
                     if (err) { msg.innerText = err.message; return; }
-                    
                     let nicknameStr = "";
-                    let subStr = ""; // ★追加：固有IDを入れる箱
-                    
+                    let subStr = ""; 
                     for (let i = 0; i < attributes.length; i++) {
                         if (attributes[i].getName() === 'nickname') nicknameStr = attributes[i].getValue();
-                        if (attributes[i].getName() === 'sub') subStr = attributes[i].getValue(); // ★追加：固有IDを取得
+                        if (attributes[i].getName() === 'sub') subStr = attributes[i].getValue();
                     }
                     localStorage.setItem('tanka_nickname', nicknameStr);
                     localStorage.setItem('tanka_access_token', accessToken); 
-                    localStorage.setItem('tanka_sub', subStr); // ★追加：ブラウザに固有IDを記憶させる
-                    
+                    localStorage.setItem('tanka_sub', subStr); 
                     window.location.href = 'index.html';
                 });
             },
-            onFailure: function(err) { msg.innerText = "ログイン失敗: " + (err.message || JSON.stringify(err)); },
+            onFailure: function(err) { 
+                // ★追加：もし「メール認証が終わっていない」エラーだったら救済する！
+                if (err.code === 'UserNotConfirmedException') {
+                    msg.innerText = "";
+                    alert("メールアドレスの確認が完了していません。\n新しく確認コードを再送しましたので、入力してください。");
+                    
+                    // 新しいコードを再送してあげる親切設計
+                    cognitoUser.resendConfirmationCode(function(err, result) {
+                        if (err) {
+                            alert("コードの再送に失敗しました: " + err.message);
+                            return;
+                        }
+                        // 画面を「コード入力画面（verifyView）」に切り替える
+                        hideAllViews();
+                        document.getElementById('verifyView').style.display = 'block';
+                    });
+                    return;
+                }
+                
+                // その他のエラー（パスワード間違いなど）はそのまま表示
+                msg.innerText = "ログイン失敗: " + (err.message || JSON.stringify(err)); 
+            },
         });
     }
 
