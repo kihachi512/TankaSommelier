@@ -38,6 +38,8 @@
 
 <div class="wrapper">
     <div class="container">
+        <div id="userStatusBar" style="text-align: right; font-size: 0.9em; margin-bottom: 15px;"></div>
+
         <h1 style="margin-top: 0; margin-bottom: 30px; text-align: center;">
             <a href="index.html" class="site-title-link">🍵 短歌ソムリエ（β版）</a>
         </h1>
@@ -111,8 +113,44 @@
 
     const iconEyeOpen = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
     const iconEyeClosed = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+    
+    // 画面を開いた時にログイン状態をチェックする
+    function checkLoginStatus() {
+        const nickname = localStorage.getItem('tanka_nickname');
+        const sub = localStorage.getItem('tanka_sub'); 
+        const statusBar = document.getElementById('userStatusBar');
+        
+        // ★修正：ステータスバーが無い時は何もしない＆postAuthorの処理を削除
+        if (!statusBar) return;
+        
+        if (nickname && sub) {
+            statusBar.innerHTML = `
+                ようこそ、<a href="author.html?user_id=${encodeURIComponent(sub)}&author=${encodeURIComponent(nickname)}" style="color: #2c5e3b; font-weight: bold;">${nickname}</a> さん！
+                <span style="color: #ccc; margin: 0 5px;">|</span>
+                <a href="settings.html" style="color: #555; text-decoration: none;">⚙️ 設定</a>
+                <span style="color: #ccc; margin: 0 5px;">|</span>
+                <a href="#" onclick="logOut()" style="color: #7f8c8d; text-decoration: none;">ログアウト</a>
+            `;
+        } else {
+            statusBar.innerHTML = `<a href="login.html" style="color: #d35400; font-weight: bold; text-decoration: none;">👤 新規登録 / ログイン</a>`;
+        }
+    }
 
+    // ログアウト処理
+    function logOut() {
+        localStorage.removeItem('tanka_nickname');
+        localStorage.removeItem('tanka_access_token');
+        localStorage.removeItem('tanka_sub');
+        Object.keys(localStorage).forEach(key => {
+            if(key.startsWith('CognitoIdentityServiceProvider')) localStorage.removeItem(key);
+        });
+        window.location.href = 'index.html'; // ログアウト後はトップへ戻す
+    }
+
+    // ★修正：2つの window.onload を1つに統合！
     window.onload = function() {
+        checkLoginStatus();
+
         if (!cognitoUser) {
             alert("ログインが必要です。");
             window.location.href = 'login.html';
@@ -186,6 +224,9 @@
 
                 msgDiv.innerText = "✅ ニックネームと過去の署名をすべて更新しました！";
                 msgDiv.style.color = "#2c5e3b";
+                
+                // 上のステータスバーも最新の名前に更新
+                checkLoginStatus(); 
 
             } catch (error) {
                 msgDiv.innerText = "⚠️ 名前は変更されましたが、過去の投稿の更新に失敗しました: " + error.message;
@@ -196,7 +237,7 @@
         });
     }
 
-    // ★追加：2-1. メールアドレスの変更要求を送信する処理
+    // 2-1. メールアドレスの変更要求を送信する処理
     function changeEmail() {
         const newEmail = document.getElementById('newEmailInput').value;
         const msgDiv = document.getElementById('msgEmail');
@@ -225,7 +266,7 @@
         });
     }
 
-    // ★追加：2-2. 届いたコードでメールアドレスを検証する処理
+    // 2-2. 届いたコードでメールアドレスを検証する処理
     function verifyEmailCode() {
         const code = document.getElementById('emailCodeInput').value;
         const msgDiv = document.getElementById('msgEmail');
