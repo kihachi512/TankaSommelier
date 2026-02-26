@@ -90,7 +90,9 @@
 
     window.onload = checkLoginStatus;
 
-    // --- 以降は元の選歌・投稿のプログラム ---
+// ==========================================
+    // 選歌（ソムリエ）機能
+    // ==========================================
     async function getTanka() {
         const mood = document.getElementById('moodInput').value;
         const resultDiv = document.getElementById('result');
@@ -105,21 +107,14 @@
         resultDiv.innerHTML = ''; 
 
         try {
-            const response = await fetch(POST_API_URL, {
+            const response = await fetch(GET_API_URL, {
                 method: 'POST',
-                headers: headers,
-                body: JSON.stringify({ tanka: tanka }) 
+                // ★選歌APIには認証トークンが不要なので、直接ヘッダーを書きます
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mood: mood })
             });
 
-            // ★追加：401（未認証・期限切れ）の場合はログイン画面へ飛ばす
-            if (response.status === 401) {
-                alert("セッションの有効期限が切れました。お手数ですが、再度ログインをお願いします🍵");
-                logOut(); // 古いパスを破棄して画面をリロード＆遷移
-                window.location.href = 'login.html';
-                return;
-            }
-
-            if (!response.ok) throw new Error('※通信エラーが発生しました');
+            if (!response.ok) throw new Error('通信エラーが発生しました');
 
             const data = await response.json();
             resultDiv.innerText = data.reply;
@@ -151,6 +146,9 @@
         }
     }
 
+    // ==========================================
+    // 投稿機能
+    // ==========================================
     async function postTanka() {
         const tanka = document.getElementById('postTanka').value;
         const postResultDiv = document.getElementById('postResult');
@@ -164,14 +162,24 @@
 
         try {
             const accessToken = localStorage.getItem('tanka_access_token');
+            
+            // ★投稿機能では、ここで「headers」という変数を作ってから使っています
             const headers = { 'Content-Type': 'application/json' };
             if (accessToken) headers['Authorization'] = accessToken;
 
             const response = await fetch(POST_API_URL, {
                 method: 'POST',
-                headers: headers,
+                headers: headers, // ★変数としてセット
                 body: JSON.stringify({ tanka: tanka }) 
             });
+
+            // ★401エラー（有効期限切れ）のハンドリング
+            if (response.status === 401) {
+                alert("セッションの有効期限が切れました。お手数ですが、再度ログインをお願いします🍵");
+                logOut(); // 古いパスを破棄
+                window.location.href = 'login.html';
+                return;
+            }
 
             if (!response.ok) throw new Error('※通信エラーが発生しました');
 
