@@ -73,8 +73,10 @@
     const params = new URLSearchParams(window.location.search);
     const authorName = params.get('author');
 
-    // ★ご自身のAPIエンドポイント
-    const API_BASE_URL = "https://e2mj433jd0.execute-api.ap-northeast-1.amazonaws.com/default/get-author-tanka";
+    // ★ご自身のAPI URLに合わせてください！
+    const GET_AUTHOR_API_URL = "https://e2mj433jd0.execute-api.ap-northeast-1.amazonaws.com/default/get-author-tanka";
+    // ★Step2で作った「削除用」のAPI URLをここに貼り付けてください！
+    const DELETE_API_URL = "https://ravjq6w60a.execute-api.ap-northeast-1.amazonaws.com/default/tanka-deleting";
 
     function formatDate(isoString) {
         if (!isoString) return '';
@@ -89,19 +91,22 @@
 
         if (!authorName) {
             nameDisplay.innerText = "作者が指定されていません";
-            loading.style.display = 'none';
-            return;
+            loading.style.display = 'none'; return;
         }
 
         nameDisplay.innerText = `✒️ ${authorName} のページ`;
         document.title = `${authorName}のページ - 短歌ソムリエ`;
 
+        // ★ログイン中のユーザー名を取得（本人かどうか判定するため）
+        const loggedInUser = localStorage.getItem('tanka_nickname');
+        const isOwner = (loggedInUser === authorName);
+
         try {
-            const response = await fetch(`${API_BASE_URL}?author=${encodeURIComponent(authorName)}`);
+            const response = await fetch(`${GET_AUTHOR_API_URL}?author=${encodeURIComponent(authorName)}`);
             if (!response.ok) throw new Error('通信エラーが発生しました');
             
             const data = await response.json();
-            const tankaList = data.tanka_list;
+            let tankaList = data.tanka_list;
 
             loading.style.display = 'none';
 
@@ -110,9 +115,13 @@
                 return;
             }
 
+            // ★追加：確実に「新しい順（降順）」になるように日付で並び替える
+            tankaList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
             tankaList.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'tanka-card';
+                card.style.position = 'relative'; // 削除ボタンの配置用
                 
                 const text = document.createElement('div');
                 text.className = 'tanka-text';
@@ -124,12 +133,63 @@
 
                 card.appendChild(text);
                 card.appendChild(date);
+
+                // ★追加：本人のページを見ている時だけ「削除ボタン」を出現させる
+                if (isOwner && item.post_id) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerText = "🗑️ 削除";
+                    deleteBtn.style.cssText = "position: absolute; bottom: 15px; left: 15px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;";
+                    
+                    deleteBtn.onclick = () => deleteTanka(item.post_id);
+                    card.appendChild(deleteBtn);
+                }
+
                 container.appendChild(card);
             });
 
         } catch (error) {
             loading.style.display = 'none';
             container.innerHTML = `<p style="color: red;">読み込みに失敗しました: ${error.message}</p>`;
+        }
+    }
+
+    // ★追加：短歌を削除する関数
+    async function deleteTanka(postId) {
+        if (!confirm("本当にこの短歌を削除しますか？\n（※AIの学習用データも完全に消去されます）")) {
+            return;
+        }
+
+        const accessToken = localStorage.getItem('tanka_access_token');
+        if (!accessToken) {
+            alert("セッションが切れています。再度ログインしてください。");
+            window.location.href = 'login.html';
+            return;
+        }
+
+        try {
+            const response = await fetch(DELETE_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': accessToken
+                },
+                body: JSON.stringify({ post_id: postId })
+            });
+
+            if (response.status === 401) {
+                alert("セッションの有効期限が切れました。再度ログインをお願いします。");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (!response.ok) throw new Error('削除に失敗しました');
+
+            alert("短歌を削除しました。");
+            // 画面をリロードしてリストを最新にする
+            location.reload();
+
+        } catch (error) {
+            alert("エラーが発生しました: " + error.message);
         }
     }
 

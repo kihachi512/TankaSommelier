@@ -105,13 +105,21 @@
         resultDiv.innerHTML = ''; 
 
         try {
-            const response = await fetch(GET_API_URL, {
+            const response = await fetch(POST_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mood: mood })
+                headers: headers,
+                body: JSON.stringify({ tanka: tanka }) 
             });
 
-            if (!response.ok) throw new Error('通信エラーが発生しました');
+            // ★追加：401（未認証・期限切れ）の場合はログイン画面へ飛ばす
+            if (response.status === 401) {
+                alert("セッションの有効期限が切れました。お手数ですが、再度ログインをお願いします🍵");
+                logOut(); // 古いパスを破棄して画面をリロード＆遷移
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (!response.ok) throw new Error('※通信エラーが発生しました');
 
             const data = await response.json();
             resultDiv.innerText = data.reply;
