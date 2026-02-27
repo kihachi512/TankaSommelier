@@ -167,7 +167,11 @@
         }
         msg.innerText = "通信中...";
 
-        const attributeList = [ new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'nickname', Value: nickname }) ];
+        // ★ここを修正：nicknameに加えて、emailも属性として追加する！
+        const attributeList = [ 
+            new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'nickname', Value: nickname }),
+            new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'email', Value: email }) 
+        ];
 
         userPool.signUp(email, password, attributeList, null, function(err, result){
             if (err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); return; }
