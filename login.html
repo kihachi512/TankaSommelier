@@ -187,9 +187,9 @@
         if(!cognitoUser || !code) { msg.innerText = "※コードを入力してください"; return; }
         msg.innerText = "確認中...";
 
-        cognitoUser.confirmRegistration(code, true, function(err, result) {
+        cognitoUser.confirmRegistration(code, true, async function(err, result) {
             if (err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); return; }
-            alert("登録完了しました！続けてログインしてください。");
+            await customAlert("登録完了しました！続けてログインしてください。");
             showLoginView();
             document.getElementById('nicknameInput').value = ''; 
         });
@@ -227,17 +227,17 @@
                 // ★追加：もし「メール認証が終わっていない」エラーだったら救済する！
                 if (err.code === 'UserNotConfirmedException') {
                     msg.innerText = "";
-                    alert("メールアドレスの確認が完了していません。\n新しく確認コードを再送しましたので、入力してください。");
-                    
-                    // 新しいコードを再送してあげる親切設計
-                    cognitoUser.resendConfirmationCode(function(err, result) {
-                        if (err) {
-                            alert("コードの再送に失敗しました: " + err.message);
-                            return;
-                        }
-                        // 画面を「コード入力画面（verifyView）」に切り替える
-                        hideAllViews();
-                        document.getElementById('verifyView').style.display = 'block';
+                    customAlert("メールアドレスの確認が完了していません。\n新しく確認コードを再送しましたので、入力してください。").then(() => {
+                        // 新しいコードを再送してあげる親切設計
+                        cognitoUser.resendConfirmationCode(function(err, result) {
+                            if (err) {
+                                customAlert("コードの再送に失敗しました: " + err.message);
+                                return;
+                            }
+                            // 画面を「コード入力画面（verifyView）」に切り替える
+                            hideAllViews();
+                            document.getElementById('verifyView').style.display = 'block';
+                        });
                     });
                     return;
                 }
@@ -277,8 +277,8 @@
         msg.innerText = "パスワードを変更中...";
 
         resetUser.confirmPassword(code, newPassword, {
-            onSuccess: function() {
-                alert("パスワードの変更が完了しました！新しいパスワードでログインしてください。");
+            onSuccess: async function() {
+                await customAlert("パスワードの変更が完了しました！新しいパスワードでログインしてください。");
                 showLoginView();
                 document.getElementById('passwordInput').value = '';
             },

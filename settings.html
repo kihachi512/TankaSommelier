@@ -111,18 +111,19 @@
     const cognitoUser = userPool.getCurrentUser();
 
     // ★修正：2つの window.onload を1つに統合！
-    window.onload = function() {
+    window.onload = async function() {
         checkLoginStatus();
 
         if (!cognitoUser) {
-            alert("ログインが必要です。");
+            await customAlert("ログインが必要です。");
             window.location.href = 'login.html';
             return;
         }
         cognitoUser.getSession(function(err, session) {
             if (err) {
-                alert("セッションの有効期限が切れました。再度ログインしてください。");
-                window.location.href = 'login.html';
+                customAlert("セッションの有効期限が切れました。再度ログインしてください。").then(() => {
+                    window.location.href = 'login.html';
+                });
                 return;
             }
             const currentNickname = localStorage.getItem('tanka_nickname');
@@ -168,7 +169,7 @@
                 });
 
                 if (response.status === 401) {
-                    alert("セッションが切れました。再度ログインしてやり直してください。");
+                    await customAlert("セッションが切れました。再度ログインしてやり直してください。");
                     window.location.href = 'login.html'; return;
                 }
 
