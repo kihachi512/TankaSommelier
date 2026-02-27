@@ -103,6 +103,16 @@
             <button class="setting-btn" id="btnPassword" onclick="changePassword()" style="background: #d35400;">パスワードを更新する</button>
             <div id="msgPassword" class="msg"></div>
         </div>
+
+        <div class="settings-card" style="border-left: 5px solid #d9534f;">
+            <h3 style="color: #d9534f; border-bottom: 2px dashed #f5c6cb;">⚠️ アカウントの削除</h3>
+            <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
+                アカウントを削除すると、これまでの投稿履歴や設定はすべて失われます。<br>
+                この操作は取り消せません。
+            </p>
+            <button class="setting-btn" id="btnDeleteAccount" onclick="deleteAccount()" style="background: #d9534f;">アカウントを完全に削除する</button>
+        </div>
+
     </div>
     
     <footer style="margin-top: 80px; text-align: center; font-size: 0.85rem; color: var(--border-color);">
@@ -284,6 +294,33 @@
             msgDiv.style.color = "#2c5e3b";
             document.getElementById('oldPasswordInput').value = '';
             document.getElementById('newPasswordInput').value = '';
+        });
+    }
+
+    // 4. アカウントを削除する処理
+    async function deleteAccount() {
+        const btn = document.getElementById('btnDeleteAccount');
+        const isConfirmed = await customConfirm(
+            "本当にアカウントを削除しますか？\nこれまでの投稿やデータはすべて失われ、復元することはできません。",
+            "削除する",
+            true
+        );
+
+        if (!isConfirmed) return;
+        
+        btn.disabled = true;
+        btn.innerText = "削除処理中...";
+
+        cognitoUser.deleteUser(async function(err, result) {
+            if (err) {
+                btn.disabled = false;
+                btn.innerText = "アカウントを完全に削除する";
+                await customAlert("削除に失敗しました: " + translateError(err));
+                return;
+            }
+            
+            await customAlert("アカウントを削除しました。\nご利用ありがとうございました。");
+            logOut(); // common.jsのログアウト関数を使用してクリーンアップ＆遷移
         });
     }
 </script>
