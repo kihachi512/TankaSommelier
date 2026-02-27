@@ -195,10 +195,10 @@
         } catch (error) {
             loading.style.display = 'none';
             if (!isLoadMore) {
-                container.innerHTML = `<p style="color: red;">読み込みに失敗しました: ${error.message}</p>`;
+                container.innerHTML = `<p style="color: red;">読み込みに失敗しました: ${translateError(error)}</p>`;
             } else {
                 // ★書き換え箇所
-                await customAlert("追加の読み込みに失敗しました: " + error.message);
+                await customAlert("追加の読み込みに失敗しました: " + translateError(error));
             }
         } finally {
             loadMoreBtn.innerText = '👇 さらに読み込む';
@@ -239,7 +239,7 @@
 
         } catch (error) {
             // ★書き換え箇所
-            await customAlert("エラーが発生しました: " + error.message);
+            await customAlert(translateError(error));
         }
     }
 

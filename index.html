@@ -126,7 +126,7 @@
 
             resultDiv.style.display = 'block';
         } catch (error) {
-            resultDiv.innerText = "エラー: " + error.message;
+            resultDiv.innerText = translateError(error);
             resultDiv.style.display = 'block';
         } finally {
             loadingDiv.style.display = 'none';
@@ -175,7 +175,7 @@
             document.getElementById('postTanka').value = '';
             
         } catch (error) {
-            postResultDiv.innerText = "※エラーが発生しました: " + error.message;
+            postResultDiv.innerText = "※" + translateError(error);
             postResultDiv.style.color = "red";
         } finally {
             setTimeout(() => {

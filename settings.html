@@ -150,7 +150,7 @@
         cognitoUser.updateAttributes(attributeList, async function(err, result) {
             if (err) {
                 btn.disabled = false;
-                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.innerText = translateError(err);
                 msgDiv.style.color = "red"; return;
             }
 
@@ -182,7 +182,7 @@
                 checkLoginStatus(); 
 
             } catch (error) {
-                msgDiv.innerText = "⚠️ 名前は変更されましたが、過去の投稿の更新に失敗しました: " + error.message;
+                msgDiv.innerText = "⚠️ 名前は変更されましたが、過去の投稿の更新に失敗しました: " + translateError(error);
                 msgDiv.style.color = "#d35400";
             } finally {
                 btn.disabled = false;
@@ -207,7 +207,7 @@
         cognitoUser.updateAttributes(attributeList, function(err, result) {
             btn.disabled = false;
             if (err) {
-                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.innerText = translateError(err);
                 msgDiv.style.color = "red";
                 return;
             }
@@ -245,7 +245,7 @@
             },
             onFailure: function(err) {
                 btn.disabled = false;
-                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.innerText = translateError(err);
                 msgDiv.style.color = "red";
             }
         });
@@ -267,7 +267,7 @@
         cognitoUser.changePassword(oldPassword, newPassword, function(err, result) {
             btn.disabled = false;
             if (err) {
-                msgDiv.innerText = "エラー: " + (err.message || JSON.stringify(err));
+                msgDiv.innerText = translateError(err);
                 msgDiv.style.color = "red";
                 return;
             }

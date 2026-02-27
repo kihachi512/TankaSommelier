@@ -174,7 +174,7 @@
         ];
 
         userPool.signUp(email, password, attributeList, null, function(err, result){
-            if (err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); return; }
+            if (err) { msg.innerText = translateError(err); return; }
             cognitoUser = result.user;
             hideAllViews();
             document.getElementById('verifyView').style.display = 'block';
@@ -188,7 +188,7 @@
         msg.innerText = "確認中...";
 
         cognitoUser.confirmRegistration(code, true, async function(err, result) {
-            if (err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); return; }
+            if (err) { msg.innerText = translateError(err); return; }
             await customAlert("登録完了しました！続けてログインしてください。");
             showLoginView();
             document.getElementById('nicknameInput').value = ''; 
@@ -210,7 +210,7 @@
             onSuccess: function (result) {
                 const accessToken = result.getAccessToken().getJwtToken();
                 cognitoUser.getUserAttributes(function(err, attributes) {
-                    if (err) { msg.innerText = err.message; return; }
+                    if (err) { msg.innerText = translateError(err); return; }
                     let nicknameStr = "";
                     let subStr = ""; 
                     for (let i = 0; i < attributes.length; i++) {
@@ -231,7 +231,7 @@
                         // 新しいコードを再送してあげる親切設計
                         cognitoUser.resendConfirmationCode(function(err, result) {
                             if (err) {
-                                customAlert("コードの再送に失敗しました: " + err.message);
+                                customAlert("コードの再送に失敗しました: " + translateError(err));
                                 return;
                             }
                             // 画面を「コード入力画面（verifyView）」に切り替える
@@ -243,7 +243,7 @@
                 }
                 
                 // その他のエラー（パスワード間違いなど）はそのまま表示
-                msg.innerText = "ログイン失敗: " + (err.message || JSON.stringify(err)); 
+                msg.innerText = translateError(err); 
             },
         });
     }
@@ -259,7 +259,7 @@
         
         resetUser.forgotPassword({
             onSuccess: function (data) {},
-            onFailure: function(err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); },
+            onFailure: function(err) { msg.innerText = translateError(err); },
             inputVerificationCode: function(data) {
                 msg.innerText = "";
                 hideAllViews();
@@ -282,7 +282,7 @@
                 showLoginView();
                 document.getElementById('passwordInput').value = '';
             },
-            onFailure: function(err) { msg.innerText = "エラー: " + (err.message || JSON.stringify(err)); }
+            onFailure: function(err) { msg.innerText = translateError(err); }
         });
     }
 </script>

@@ -130,3 +130,55 @@ function toggleVisibility(inputId, iconElement) {
         iconElement.innerHTML = iconEyeClosed;
     }
 }
+
+// ==========================================
+// エラーメッセージ翻訳機能
+// ==========================================
+function translateError(err) {
+    if (!err) return "不明なエラーが発生しました。";
+    if (typeof err === 'string') return err;
+
+    // Cognitoのエラーコードに基づく変換
+    const code = err.code || err.name;
+    const message = err.message || JSON.stringify(err);
+
+    switch (code) {
+        case 'NotAuthorizedException':
+            return "メールアドレスまたはパスワードが間違っています。";
+        case 'UserNotFoundException':
+            return "このメールアドレスは登録されていません。";
+        case 'CodeMismatchException':
+            return "確認コードが正しくありません。もう一度入力してください。";
+        case 'ExpiredCodeException':
+            return "確認コードの有効期限が切れています。コードを再送してください。";
+        case 'LimitExceededException':
+            return "試行回数の上限を超えました。しばらく時間を置いてから再度お試しください。";
+        case 'InvalidPasswordException':
+            return "パスワードは8文字以上で、大文字・小文字・数字・記号を含める必要があります。";
+        case 'UsernameExistsException':
+            return "このメールアドレスは既に登録されています。";
+        case 'UserNotConfirmedException':
+            return "メールアドレスの確認が完了していません。";
+        case 'InvalidParameterException':
+            return "入力内容に誤りがあります。形式を確認してください。";
+        case 'TooManyRequestsException':
+            return "アクセスが集中しています。しばらく待ってから再試行してください。";
+        case 'NetworkError':
+            return "通信エラーが発生しました。インターネット接続を確認してください。";
+    }
+
+    // 既に日本語のエラーメッセージならそのまま返す
+    if (/[ぁ-んァ-ン一-龥]/.test(message)) {
+        return message;
+    }
+
+    // その他の英語エラー
+    if (message.includes("NetworkError") || message.includes("Failed to fetch")) {
+        return "通信エラーが発生しました。インターネット接続を確認してください。";
+    }
+    if (message.includes("Incorrect username or password")) {
+        return "メールアドレスまたはパスワードが間違っています。";
+    }
+
+    return "エラーが発生しました (" + message + ")";
+}
