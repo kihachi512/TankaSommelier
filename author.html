@@ -13,6 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+    <script src="common.js"></script>
     
     <style>
         .tanka-card {
@@ -23,7 +25,7 @@
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             text-align: left;
-            position: relative; /* ★削除アイコンの位置基準として必要 */
+            position: relative;
         }
         .tanka-text {
             font-size: 1.1em;
@@ -95,47 +97,12 @@
     const userId = params.get('user_id'); 
     const authorName = params.get('author');
 
-    const GET_AUTHOR_API_URL = "https://e2mj433jd0.execute-api.ap-northeast-1.amazonaws.com/default/get-author-tanka";
-    const DELETE_API_URL = "https://ravjq6w60a.execute-api.ap-northeast-1.amazonaws.com/default/tanka-deleting";
-
     let currentLastKey = null;
-
+    
     function formatDate(isoString) {
         if (!isoString) return '';
         const date = new Date(isoString);
         return date.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-    }
-
-    // ★追加：ログイン状態をチェックして右上に表示する関数
-    function checkLoginStatus() {
-        const nickname = localStorage.getItem('tanka_nickname');
-        const sub = localStorage.getItem('tanka_sub'); 
-        const statusBar = document.getElementById('userStatusBar');
-        
-        if (!statusBar) return;
-        
-        if (nickname && sub) {
-            statusBar.innerHTML = `
-                ようこそ、<a href="author.html?user_id=${encodeURIComponent(sub)}&author=${encodeURIComponent(nickname)}" style="color: #2c5e3b; font-weight: bold;">${nickname}</a> さん！
-                <span style="color: #ccc; margin: 0 5px;">|</span>
-                <a href="settings.html" style="color: #555; text-decoration: none;">⚙️ 設定</a>
-                <span style="color: #ccc; margin: 0 5px;">|</span>
-                <a href="#" onclick="logOut()" style="color: #7f8c8d; text-decoration: none;">ログアウト</a>
-            `;
-        } else {
-            statusBar.innerHTML = `<a href="login.html" style="color: #d35400; font-weight: bold; text-decoration: none;">👤 新規登録 / ログイン</a>`;
-        }
-    }
-
-    // ★追加：ログアウト処理
-    function logOut() {
-        localStorage.removeItem('tanka_nickname');
-        localStorage.removeItem('tanka_access_token');
-        localStorage.removeItem('tanka_sub');
-        Object.keys(localStorage).forEach(key => {
-            if(key.startsWith('CognitoIdentityServiceProvider')) localStorage.removeItem(key);
-        });
-        window.location.href = 'index.html'; 
     }
 
     async function fetchAuthorTanka(isLoadMore = false) {
@@ -171,7 +138,7 @@
                 requestBody.exclusive_start_key = currentLastKey;
             }
 
-            const response = await fetch(GET_AUTHOR_API_URL, {
+            const response = await fetch(CONFIG.API.GET_AUTHOR, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -180,7 +147,6 @@
             if (!response.ok) throw new Error('通信エラーが発生しました');
             
             const data = await response.json();
-            
             let tankaList = data.items || [];
 
             loading.style.display = 'none';
@@ -231,7 +197,8 @@
             if (!isLoadMore) {
                 container.innerHTML = `<p style="color: red;">読み込みに失敗しました: ${error.message}</p>`;
             } else {
-                alert("追加の読み込みに失敗しました: " + error.message);
+                // ★書き換え箇所
+                await customAlert("追加の読み込みに失敗しました: " + error.message);
             }
         } finally {
             loadMoreBtn.innerText = '👇 さらに読み込む';
@@ -240,37 +207,42 @@
     }
 
     async function deleteTanka(postId) {
-        if (!confirm("本当にこの短歌を削除しますか？\n（※AIの学習用データも完全に消去されます）")) return;
+        // ★書き換え箇所（カスタムコンファーム）
+        const isConfirmed = await customConfirm("本当にこの短歌を削除しますか？\n（※AIの学習用データも完全に消去されます）", "削除する", true);
+        if (!isConfirmed) return;
 
         const accessToken = localStorage.getItem('tanka_access_token');
         if (!accessToken) {
-            alert("セッションが切れています。再度ログインしてください。");
+            // ★書き換え箇所
+            await customAlert("セッションが切れています。再度ログインしてください。");
             window.location.href = 'login.html'; return;
         }
 
         try {
-            const response = await fetch(DELETE_API_URL, {
+            const response = await fetch(CONFIG.API.DELETE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': accessToken },
                 body: JSON.stringify({ post_id: postId })
             });
 
             if (response.status === 401) {
-                alert("セッションの有効期限が切れました。再度ログインをお願いします。");
+                // ★書き換え箇所
+                await customAlert("セッションの有効期限が切れました。再度ログインをお願いします。");
                 window.location.href = 'login.html'; return;
             }
 
             if (!response.ok) throw new Error('削除に失敗しました');
 
-            alert("短歌を削除しました。");
+            // ★書き換え箇所
+            await customAlert("短歌を削除しました。");
             location.reload();
 
         } catch (error) {
-            alert("エラーが発生しました: " + error.message);
+            // ★書き換え箇所
+            await customAlert("エラーが発生しました: " + error.message);
         }
     }
 
-    // ★修正：ページ読み込み時に、ログインチェックと短歌読み込みの両方を行う
     window.onload = () => {
         checkLoginStatus();
         fetchAuthorTanka(false);

@@ -26,6 +26,8 @@
     <link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+    <script src="common.js"></script>
     
     <style>
         .auth-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
@@ -44,7 +46,7 @@
         <h3>みんなが投稿した短歌の中から、<br>AIソムリエが今のあなたに寄り添う一首を案内します。</h3>
         
         <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-            <p>今のあなたの気分や情景を教えてください。</p>
+            <p>今のあなたの気分を教えてください</p>
             <textarea id="moodInput" placeholder="例：雨の音を聞きながら、少し感傷的な気分..."></textarea>
             <br>
             <button id="getBtn" onclick="getTanka()">選歌してもらう</button>
@@ -56,11 +58,11 @@
             <h3 style="margin-top: 0; color: #2c5e3b;">✒️ あなたの短歌を投稿する</h3>
             <p style="font-size: 0.85em; color: #555;">ログインするとマイページに自分の短歌が記録されます。<br>未ログインの場合は「詠み人知らず」として投稿されます。</p>
             
-            <input type="text" id="postAuthor" class="auth-input" disabled style="background: #e0e0e0; font-weight: bold;">
+            <input type="text" id="postAuthor" class="auth-input" disabled style="background: #e0e0e0;">
             <textarea id="postTanka" placeholder="短歌を入力してください"></textarea>
             <br>
             <button id="postBtn" onclick="postTanka()" style="background-color: #4CAF50;">投稿する</button>
-            <div id="postResult" style="margin-top: 15px; font-weight: bold; text-align: center;"></div>
+            <div id="postResult" style="margin-top: 15px; text-align: center;"></div>
         </div>
     </div>
 
@@ -74,46 +76,9 @@
 </div>
 
 <script>
-    const GET_API_URL = "https://3ksw35h88a.execute-api.ap-northeast-1.amazonaws.com/recommend";
-    const POST_API_URL = "https://y004ehl6p5.execute-api.ap-northeast-1.amazonaws.com/default/tanka-posting";
-
-    // 画面を開いた時にログイン状態をチェックする
-    function checkLoginStatus() {
-        const nickname = localStorage.getItem('tanka_nickname');
-        const sub = localStorage.getItem('tanka_sub'); // ★追加：記憶した固有IDを呼び出す
-        const statusBar = document.getElementById('userStatusBar');
-        const postAuthor = document.getElementById('postAuthor');
-        
-        if (nickname && sub) {
-            // ★変更：author.html へのリンクに user_id も含める
-            statusBar.innerHTML = `
-                ようこそ、<a href="author.html?user_id=${encodeURIComponent(sub)}&author=${encodeURIComponent(nickname)}" style="color: #2c5e3b; font-weight: bold;">${nickname}</a> さん！
-                <span style="color: #ccc; margin: 0 5px;">|</span>
-                <a href="settings.html" style="color: #555; text-decoration: none;">⚙️ 設定</a>
-                <span style="color: #ccc; margin: 0 5px;">|</span>
-                <a href="#" onclick="logOut()" style="color: #7f8c8d; text-decoration: none;">ログアウト</a>
-            `;
-            postAuthor.value = nickname; 
-        } else {
-            statusBar.innerHTML = `<a href="login.html" style="color: #d35400; font-weight: bold; text-decoration: none;">👤 新規登録 / ログイン</a>`;
-            postAuthor.value = '詠み人知らず'; 
-        }
-    }
-
-    // ログアウト処理（ブラウザの記憶を消して再読み込み）
-    function logOut() {
-        localStorage.removeItem('tanka_nickname');
-        localStorage.removeItem('tanka_access_token');
-        localStorage.removeItem('tanka_sub'); // ★追加：ログアウト時に固有IDも消す
-        Object.keys(localStorage).forEach(key => {
-            if(key.startsWith('CognitoIdentityServiceProvider')) localStorage.removeItem(key);
-        });
-        location.reload(); 
-    }
-
     window.onload = checkLoginStatus;
 
-// ==========================================
+    // ==========================================
     // 選歌（ソムリエ）機能
     // ==========================================
     async function getTanka() {
@@ -122,7 +87,8 @@
         const loadingDiv = document.getElementById('loading');
         const submitBtn = document.getElementById('getBtn');
 
-        if (!mood) { alert("気分を入力してくださいね。"); return; }
+        // ★書き換え箇所
+        if (!mood) { await customAlert("今の気分を入力してください"); return; }
 
         submitBtn.disabled = true;
         resultDiv.style.display = 'none';
@@ -130,9 +96,8 @@
         resultDiv.innerHTML = ''; 
 
         try {
-            const response = await fetch(GET_API_URL, {
+            const response = await fetch(CONFIG.API.RECOMMEND, {
                 method: 'POST',
-                // ★選歌APIには認証トークンが不要なので、直接ヘッダーを書きます
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mood: mood })
             });
@@ -142,7 +107,6 @@
             const data = await response.json();
             resultDiv.innerText = data.reply;
             
-            // ★変更：詠み人知らず（anonymous）じゃない時だけボタンを出す
             if (data.author && data.user_id && data.user_id !== 'anonymous') {
                 const linkBtn = document.createElement('button');
                 linkBtn.innerText = `✒️ ${data.author} の投稿一覧を見る`;
@@ -154,7 +118,6 @@
                 linkBtn.style.borderRadius = '4px';
                 linkBtn.style.cursor = 'pointer';
                 
-                // ★変更：URLパラメータに user_id も渡す
                 linkBtn.onclick = () => { window.location.href = `author.html?user_id=${encodeURIComponent(data.user_id)}&author=${encodeURIComponent(data.author)}`; };
                 
                 resultDiv.appendChild(document.createElement('br'));
@@ -179,7 +142,8 @@
         const postResultDiv = document.getElementById('postResult');
         const postBtn = document.getElementById('postBtn');
 
-        if (!tanka) { alert("※短歌を入力してください"); return; }
+        // ★書き換え箇所
+        if (!tanka) { await customAlert("※短歌を入力してください"); return; }
 
         postBtn.disabled = true;
         postBtn.innerText = '送信中...';
@@ -187,22 +151,19 @@
 
         try {
             const accessToken = localStorage.getItem('tanka_access_token');
-            
-            // ★投稿機能では、ここで「headers」という変数を作ってから使っています
             const headers = { 'Content-Type': 'application/json' };
             if (accessToken) headers['Authorization'] = accessToken;
 
-            const response = await fetch(POST_API_URL, {
+            const response = await fetch(CONFIG.API.POST, {
                 method: 'POST',
-                headers: headers, // ★変数としてセット
+                headers: headers,
                 body: JSON.stringify({ tanka: tanka }) 
             });
 
-            // ★401エラー（有効期限切れ）のハンドリング
             if (response.status === 401) {
-                alert("セッションの有効期限が切れました。お手数ですが、再度ログインをお願いします🍵");
-                logOut(); // 古いパスを破棄
-                window.location.href = 'login.html';
+                // ★書き換え箇所
+                await customAlert("セッションの有効期限が切れました。お手数ですが、再度ログインをお願いします🍵");
+                logOut('login.html');
                 return;
             }
 

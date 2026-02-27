@@ -13,12 +13,14 @@
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
+    <script src="config.js"></script>
+    <script src="common.js"></script>
 
     <style>
         .settings-card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: left; }
         .settings-card h3 { margin-top: 0; color: #2c5e3b; border-bottom: 2px dashed #e0e0e0; padding-bottom: 10px; font-size: 1.2em;}
         .setting-input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
-        .setting-btn { padding: 10px 15px; border: none; border-radius: 4px; color: white; cursor: pointer; font-family: inherit; font-weight: bold; background: #2c5e3b; transition: opacity 0.2s;}
+        .setting-btn { padding: 10px 15px; border: none; border-radius: 4px; color: white; cursor: pointer; font-family: inherit; background: #2c5e3b; transition: opacity 0.2s;}
         .setting-btn:hover { opacity: 0.8; }
         .setting-btn:disabled { background: #ccc; cursor: not-allowed; }
         
@@ -31,7 +33,7 @@
         .toggle-password svg { width: 20px; height: 20px; stroke: currentColor; }
         .site-title-link { text-decoration: none; color: inherit; transition: opacity 0.2s; }
         .site-title-link:hover { opacity: 0.7; }
-        .msg { font-size: 0.9em; margin-top: 10px; font-weight: bold; }
+        .msg { font-size: 0.9em; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -63,7 +65,7 @@
             </div>
             
             <div id="emailVerifyArea" style="display: none;">
-                <p style="font-size: 0.85em; color: #d35400; font-weight: bold; margin-bottom: 10px;">※新しいメールアドレスに確認コードを送信しました。</p>
+                <p style="font-size: 0.85em; color: #d35400; margin-bottom: 10px;">※新しいメールアドレスに確認コードを送信しました。</p>
                 <input type="text" id="emailCodeInput" class="setting-input" placeholder="6桁の確認コード">
                 <button class="setting-btn" id="btnVerifyEmail" onclick="verifyEmailCode()" style="background: #e67e22;">コードを確認して完了</button>
             </div>
@@ -105,47 +107,8 @@
 
 <script>
     // Cognitoの設定
-    const poolData = { UserPoolId: 'ap-northeast-1_eCaiHRE4i', ClientId: '43kh9fab4798b32548q9ap1nmn' };
-    const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+    const userPool = new AmazonCognitoIdentity.CognitoUserPool(CONFIG.COGNITO);
     const cognitoUser = userPool.getCurrentUser();
-
-    const SYNC_API_URL = "https://md8sp3pwz8.execute-api.ap-northeast-1.amazonaws.com/default/sync-author-name";
-
-    const iconEyeOpen = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    const iconEyeClosed = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
-    
-    // 画面を開いた時にログイン状態をチェックする
-    function checkLoginStatus() {
-        const nickname = localStorage.getItem('tanka_nickname');
-        const sub = localStorage.getItem('tanka_sub'); 
-        const statusBar = document.getElementById('userStatusBar');
-        
-        // ★修正：ステータスバーが無い時は何もしない＆postAuthorの処理を削除
-        if (!statusBar) return;
-        
-        if (nickname && sub) {
-            statusBar.innerHTML = `
-                ようこそ、<a href="author.html?user_id=${encodeURIComponent(sub)}&author=${encodeURIComponent(nickname)}" style="color: #2c5e3b; font-weight: bold;">${nickname}</a> さん！
-                <span style="color: #ccc; margin: 0 5px;">|</span>
-                <a href="settings.html" style="color: #555; text-decoration: none;">⚙️ 設定</a>
-                <span style="color: #ccc; margin: 0 5px;">|</span>
-                <a href="#" onclick="logOut()" style="color: #7f8c8d; text-decoration: none;">ログアウト</a>
-            `;
-        } else {
-            statusBar.innerHTML = `<a href="login.html" style="color: #d35400; font-weight: bold; text-decoration: none;">👤 新規登録 / ログイン</a>`;
-        }
-    }
-
-    // ログアウト処理
-    function logOut() {
-        localStorage.removeItem('tanka_nickname');
-        localStorage.removeItem('tanka_access_token');
-        localStorage.removeItem('tanka_sub');
-        Object.keys(localStorage).forEach(key => {
-            if(key.startsWith('CognitoIdentityServiceProvider')) localStorage.removeItem(key);
-        });
-        window.location.href = 'index.html'; // ログアウト後はトップへ戻す
-    }
 
     // ★修正：2つの window.onload を1つに統合！
     window.onload = function() {
@@ -167,17 +130,6 @@
                 document.getElementById('newNicknameInput').value = currentNickname;
             }
         });
-    }
-
-    function toggleVisibility(inputId, iconElement) {
-        const input = document.getElementById(inputId);
-        if (input.type === "password") {
-            input.type = "text";
-            iconElement.innerHTML = iconEyeOpen;
-        } else {
-            input.type = "password";
-            iconElement.innerHTML = iconEyeClosed;
-        }
     }
 
     // 1. ニックネームを変更する処理
@@ -206,7 +158,7 @@
 
             try {
                 const accessToken = localStorage.getItem('tanka_access_token');
-                const response = await fetch(SYNC_API_URL, {
+                const response = await fetch(CONFIG.API.SYNC, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

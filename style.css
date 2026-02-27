@@ -9,9 +9,16 @@
 }
 
 /* すべての要素でRocknRoll Oneを適用し、太字を強制的に解除 */
-* {
-    font-family: 'RocknRoll One', sans-serif !important;
-    font-weight: normal !important;
+body {
+    font-family: 'RocknRoll One', sans-serif;
+    font-weight: normal;
+}
+input, button, textarea, select {
+    font-family: inherit;
+    font-weight: inherit;
+}
+h1, h2, h3, h4, h5, h6, b, strong {
+    font-weight: normal;
 }
 
 body { 
@@ -143,6 +150,53 @@ footer a:hover { color: var(--link-color); }
     border-color: var(--link-color); 
     transform: translateY(-2px); 
 }
+/* =========================================
+   🍵 カスタムポップアップ（モーダル）のスタイル
+   ========================================= */
+.custom-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    opacity: 0; transition: opacity 0.2s ease;
+}
+.custom-modal {
+    background: #fffefb; /* テーマの背景色 */
+    padding: 30px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 90%; max-width: 350px;
+    text-align: center;
+    transform: translateY(20px); transition: transform 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+.custom-modal-overlay.show { opacity: 1; }
+.custom-modal-overlay.show .custom-modal { transform: translateY(0); }
+
+.custom-modal p {
+    margin: 0 0 25px 0; color: var(--text-main); line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap;
+}
+
+.custom-modal-buttons {
+    display: flex; justify-content: center; gap: 15px;
+}
+
+/* ボタン共通のベースを上書き */
+.custom-modal-buttons button {
+    margin-top: 0; padding: 10px 20px; font-size: 0.9rem; flex: 1;
+}
+
+/* キャンセル用の目立たないボタン */
+.btn-cancel {
+    background-color: var(--bg-color) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+}
+.btn-cancel:hover { background-color: #eae6df !important; transform: none !important; }
+
+/* 削除用の赤いボタン */
+.btn-danger { background-color: #d9534f !important; }
+.btn-danger:hover { background-color: #c9302c !important; }
 /* =========================================
    📱 スマホ（画面幅600px以下）向けのレイアウト調整
    ========================================= */
