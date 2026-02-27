@@ -68,7 +68,7 @@
             <p style="font-size: 0.85em; color: #555;">ログインするとマイページに自分の短歌が記録されます。<br>未ログインの場合は「詠み人知らず」として投稿されます。</p>
             
             <input type="text" id="postAuthor" class="auth-input" disabled style="background: #e0e0e0;">
-            <textarea id="postTanka" placeholder="短歌を入力してください"></textarea>
+            <textarea id="postTanka" placeholder="短歌を入力してください" maxlength="60"></textarea>
             <br>
             <button id="postBtn" onclick="postTanka()" style="background-color: #4CAF50;">投稿する</button>
             <div id="postResult" style="margin-top: 15px; text-align: center;"></div>
@@ -147,12 +147,24 @@
     // 投稿機能
     // ==========================================
     async function postTanka() {
-        const tanka = document.getElementById('postTanka').value;
+        // ★修正: .trim() をつけて、前後の空白や改行だけのズルい投稿を防ぐ
+        const tanka = document.getElementById('postTanka').value.trim();
         const postResultDiv = document.getElementById('postResult');
         const postBtn = document.getElementById('postBtn');
 
-        // ★書き換え箇所
-        if (!tanka) { await customAlert("※短歌を入力してください"); return; }
+        // ★修正: 空文字、短すぎる、長すぎる場合のアラートを追加
+        if (!tanka) { 
+            await customAlert("※短歌を入力してください"); 
+            return; 
+        }
+        if (tanka.length < 5) { 
+            await customAlert("※文字数が短すぎるようです"); 
+            return; 
+        }
+        if (tanka.length > 60) { 
+            await customAlert("※文字数が長すぎるようです"); 
+            return; 
+        }
 
         postBtn.disabled = true;
         postBtn.innerText = '送信中...';
